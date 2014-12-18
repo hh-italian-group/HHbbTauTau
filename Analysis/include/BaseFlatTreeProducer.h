@@ -58,7 +58,7 @@ public:
 
         SelectionResults& selection = ApplyBaselineSelection();
         selection.svfitResults = sv_fit::CombinedFit(*selection.higgs, selection.MET_with_recoil_corrections,
-                                                     true, true);
+                                                     false, true);
         selection.kinfitResults = RunKinematicFit(selection.bjets_all, *selection.higgs,
                                                   selection.MET_with_recoil_corrections);
 

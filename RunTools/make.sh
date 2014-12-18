@@ -86,7 +86,7 @@ int main()
 }
 " > $CODE_OUT
 
-g++ -std=c++0x -Wall $COMPILE_FLAGS \
+g++ -std=c++0x -Wall -Wno-maybe-uninitialized $COMPILE_FLAGS \
         -I. -I$CMSSW_BASE/src -I$CMSSW_RELEASE_BASE/src -I$ROOT_INCLUDE_PATH -I$BOOST_INCLUDE_PATH \
         $( root-config --libs ) -lMathMore -lGenVector -lTMVA -L$BOOST_BASE/lib  \
         -o $EXE_NAME $CODE_OUT
