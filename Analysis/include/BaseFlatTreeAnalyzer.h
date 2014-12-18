@@ -98,8 +98,6 @@ public:
             FlatAnalyzerData::FullHistogramName(FlatAnalyzerData::m_ttbb_kinfit_Name(),
                                                 EventSubCategory::KinematicFitConvergedWithMassWindow,
                                                 EventEnergyScale::Central),
-            FlatAnalyzerData::FullHistogramName(FlatAnalyzerData::m_bb_slice_Name(), EventSubCategory::NoCuts,
-                                                EventEnergyScale::Central)
         };
 
         for (const auto& hist_name : FlatAnalyzerData::GetAllHistogramNames()) {
@@ -147,7 +145,6 @@ public:
                                         EventSubCategory::KinematicFitConverged);
         ProduceFileForLimitsCalculation(FlatAnalyzerData::m_ttbb_kinfit_Name(),
                                         EventSubCategory::KinematicFitConvergedWithMassWindow);
-        ProduceFileForLimitsCalculation(FlatAnalyzerData::m_bb_slice_Name(), EventSubCategory::NoCuts);
 
         std::cout << "Printing stacked plots... " << std::endl;
         PrintStackedPlots(true, true, EventRegion::OS_Isolated);
@@ -477,7 +474,7 @@ protected:
                 //root_ext::PdfPrinter printer(outputFileName + blindCondition + "_" + hist.name + ratioCondition +".pdf");
                 std::ostringstream ss_title;
                 ss_title << eventCategory << ": " << hist_name;
-                StackedPlotDescriptor stackDescriptor(ss_title.str(), false, ChannelNameLatex(), drawRatio);
+                StackedPlotDescriptor stackDescriptor(ss_title.str(), true, ChannelNameLatex(), drawRatio);
 
                 for(const DataCategory* category : dataCategoryCollection.GetAllCategories()) {
                     if(!category->draw) continue;
@@ -730,8 +727,7 @@ private:
 
         static const std::map<std::string, size_t> histogramsToBlind = {
             { FlatAnalyzerData::m_sv_Name(), 1 }, { FlatAnalyzerData::m_vis_Name(), 1 },
-            { FlatAnalyzerData::m_bb_Name(), 1 }, { FlatAnalyzerData::m_ttbb_Name(), 2 },
-            { FlatAnalyzerData::m_ttbb_kinfit_Name(), 2 }, { FlatAnalyzerData::m_bb_slice_Name(), 3 }
+            { FlatAnalyzerData::m_ttbb_Name(), 2 },{ FlatAnalyzerData::m_ttbb_kinfit_Name(), 2 }
         };
 
         static const std::set<EventSubCategory> sidebandSubCategories = { EventSubCategory::OutsideMassWindow };
@@ -845,3 +841,4 @@ protected:
 };
 
 } // namespace analysis
+
