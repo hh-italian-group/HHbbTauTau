@@ -674,18 +674,7 @@ protected:
     {
         if(!higgses.size())
             throw std::runtime_error("no available higgs candidate to select");
-        const auto higgsSelector = [&] (const CandidatePtr& first, const CandidatePtr& second) -> bool
-        {
-            const double first_Pt1 = first->GetDaughters().at(0)->GetMomentum().Pt();
-            const double first_Pt2 = first->GetDaughters().at(1)->GetMomentum().Pt();
-            const double first_sumPt = first_Pt1 + first_Pt2;
-            const double second_Pt1 = second->GetDaughters().at(0)->GetMomentum().Pt();
-            const double second_Pt2 = second->GetDaughters().at(1)->GetMomentum().Pt();
-            const double second_sumPt = second_Pt1 + second_Pt2;
-
-            return first_sumPt < second_sumPt;
-        };
-        return *std::max_element(higgses.begin(), higgses.end(), higgsSelector) ;
+	// a candidate with the highest sum Pt should be returned
     }
 
     bool FindAnalysisFinalState(finalState::bbTauTau& final_state)
