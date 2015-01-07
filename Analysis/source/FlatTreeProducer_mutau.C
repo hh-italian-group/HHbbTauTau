@@ -264,6 +264,61 @@ protected:
         return selection;
     }
 
+    // MUON SELECTION
+    virtual void SelectMuon(const analysis::CandidatePtr& muon, analysis::SelectionManager& selectionManager,
+                            cuts::Cutter& cut) override
+    {
+        using namespace cuts::Htautau_Summer13::MuTau;
+        using namespace cuts::Htautau_Summer13::MuTau::muonID;
+        const ntuple::Muon& object = muon->GetNtupleObject<ntuple::Muon>();
+
+        cut(true, ">0 mu cand");
+        
+        // DeltaZ already defined
+        const double DeltaZ = std::abs(object.vz - primaryVertex->GetPosition().Z());
+                         
+        // dB_PV already defined
+        const TVector3 mu_vertex(object.vx, object.vy, object.vz);
+        const double dB_PV = analysis::Calculate_dxy(mu_vertex, primaryVertex->GetPosition(), muon->GetMomentum());
+                                                         
+    }
+
+    virtual void SelectSignalMuon(const analysis::CandidatePtr& muon,
+                                  analysis::SelectionManager& selectionManager, cuts::Cutter& cut) override
+    {
+        using namespace cuts::Htautau_Summer13::MuTau;
+        using namespace cuts::Htautau_Summer13::MuTau::muonID;
+        const ntuple::Muon& object = muon->GetNtupleObject<ntuple::Muon>();
+
+        SelectMuon(muon, selectionManager, cut);
+        
+    }
+
+    // TAU SELECTION
+    virtual void SelectTau(const analysis::CandidatePtr& tau, analysis::SelectionManager& selectionManager,
+                           cuts::Cutter& cut) override
+    {
+        using namespace cuts::Htautau_Summer13::MuTau;
+        using namespace cuts::Htautau_Summer13::MuTau::tauID;
+        const ntuple::Tau& object = tau->GetNtupleObject<ntuple::Tau>();
+
+        cut(true, ">0 tau cand");
+        
+        // DeltaZ already defined
+        const double DeltaZ = std::abs(object.vz - primaryVertex->GetPosition().Z());
+                        
+    }
+
+    virtual void SelectSignalTau(const analysis::CandidatePtr& tau,
+                                 analysis::SelectionManager& selectionManager, cuts::Cutter& cut) override
+    {
+        using namespace cuts::Htautau_Summer13::MuTau;
+        using namespace cuts::Htautau_Summer13::MuTau::tauID;
+        const ntuple::Tau& object = tau->GetNtupleObject<ntuple::Tau>();
+
+        SelectTau(tau, selectionManager, cut);
+        
+    }
 
     analysis::CandidatePtrVector CollectZmuons()
     {
