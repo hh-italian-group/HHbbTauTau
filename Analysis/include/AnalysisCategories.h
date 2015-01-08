@@ -413,42 +413,8 @@ EventCategoryVector DetermineEventCategories(const std::vector<float>& csv_Bjets
 {
     EventCategoryVector categories;
     categories.push_back(EventCategory::Inclusive);
-
-    static const std::map< size_t, EventCategory> mediumCategories_map {
-        {  0 , EventCategory::TwoJets_ZeroBtag }, { 1 , EventCategory::TwoJets_OneBtag },
-        {  2 , EventCategory::TwoJets_TwoBtag }
-    };
-
-    static const std::map< size_t, EventCategory> looseCategories_map {
-        { 0 , EventCategory::TwoJets_ZeroLooseBtag }, { 1, EventCategory::TwoJets_OneLooseBtag },
-        { 2 , EventCategory::TwoJets_TwoLooseBtag }
-    };
-
-    if (csv_Bjets.size() >= 2){
-        categories.push_back(EventCategory::TwoJets_Inclusive);
-
-        size_t n_mediumBtag = 0;
-        if(doRetag) {
-            n_mediumBtag = std::min<size_t>(nBjets_retagged, 2);
-        } else {
-            if(csv_Bjets.at(0) > CSVM) ++n_mediumBtag;
-            if(csv_Bjets.at(1) > CSVM) ++n_mediumBtag;
-        }
-
-        if(mediumCategories_map.count(n_mediumBtag))
-            categories.push_back(mediumCategories_map.at(n_mediumBtag));
-        if(n_mediumBtag > 0)
-            categories.push_back(EventCategory::TwoJets_AtLeastOneBtag);
-
-        size_t n_looseBtag = 0;
-        if(csv_Bjets.at(0) > CSVL) ++n_looseBtag;
-        if(csv_Bjets.at(1) > CSVL) ++n_looseBtag;
-
-        if(looseCategories_map.count(n_looseBtag))
-            categories.push_back(looseCategories_map.at(n_looseBtag));
-        if(n_looseBtag > 0)
-            categories.push_back(EventCategory::TwoJets_AtLeastOneLooseBtag);
-    }
+    
+    // implement here the event categorization
 
     return categories;
 }
