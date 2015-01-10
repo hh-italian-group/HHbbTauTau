@@ -166,8 +166,8 @@ protected:
     virtual void CreateHistogramForVVcategory(EventCategory eventCategory,const std::string& hist_name) = 0;
 
     PhysicalValueMap CalculateZTTmatchedYield(const std::string& hist_name,
-                                                             analysis::EventCategory eventCategory,
-                                                             bool useEmbedded)
+                                                                 analysis::EventCategory eventCategory,
+                                                                 bool useEmbedded)
     {
 
         const analysis::DataCategory& ZTT_MC = dataCategoryCollection.GetUniqueCategory(analysis::DataCategoryType::ZTT_MC);
@@ -177,10 +177,11 @@ protected:
             const analysis::DataCategory& embedded = dataCategoryCollection.GetUniqueCategory(analysis::DataCategoryType::Embedded);
             const analysis::DataCategory& TTembedded = dataCategoryCollection.GetUniqueCategory(analysis::DataCategoryType::TT_Embedded);
             TH1D* hist_embedded_inclusive = GetSignalHistogram(analysis::EventCategory::Inclusive, embedded.name, hist_name);
-            TH1D* hist_embedded_category = GetSignalHistogram(eventCategory, embedded.name, hist_name);
-            TH1D* hist_TTembedded_inclusive = GetSignalHistogram(analysis::EventCategory::Inclusive, TTembedded.name, hist_name);
-            TH1D* hist_TTembedded_category = GetSignalHistogram(eventCategory, TTembedded.name, hist_name);
-            TH1D* hist_ztautau_inclusive = GetSignalHistogram(analysis::EventCategory::Inclusive, ZTT_MC.name, hist_name);
+            // define histograms to evaluate the total yield
+            //TH1D* hist_embedded_category =
+            //TH1D* hist_TTembedded_inclusive =
+            //TH1D* hist_TTembedded_category =
+            //TH1D* hist_ztautau_inclusive =
             if(!hist_embedded_inclusive)
                 throw analysis::exception("embedded hist in inclusive category not found");
             if(!hist_embedded_category)
@@ -192,12 +193,13 @@ protected:
             if(!hist_ztautau_inclusive )
                 throw analysis::exception("ztt hist in inclusive category not found");
 
-            const analysis::PhysicalValue n_emb_inclusive =
-                    analysis::Integral(*hist_embedded_inclusive, true) - analysis::Integral(*hist_TTembedded_inclusive, true);
-            const analysis::PhysicalValue n_emb_category =
-                    analysis::Integral(*hist_embedded_category, true) - analysis::Integral(*hist_TTembedded_category, true);
-            const analysis::PhysicalValue n_ztautau_inclusive = analysis::Integral(*hist_ztautau_inclusive, true);
-            const analysis::PhysicalValue embedded_eff = n_emb_category/n_emb_inclusive;
+            //evaluate total yield
+            const analysis::PhysicalValue n_emb_inclusive;
+
+            const analysis::PhysicalValue n_emb_category;
+            const analysis::PhysicalValue n_ztautau_inclusive;
+            const analysis::PhysicalValue embedded_eff;
+
             zttYield[analysis::EventRegion::OS_Isolated] = n_ztautau_inclusive * embedded_eff;
         }
 
