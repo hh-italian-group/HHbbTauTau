@@ -676,6 +676,8 @@ protected:
         if(!higgses.size())
             throw std::runtime_error("no available higgs candidate to select");
 	// a candidate with the highest sum Pt should be returned
+	// function now returns the first element just for compilation
+	return higgses.at(0);
     }
 
     bool FindAnalysisFinalState(finalState::bbTauTau& final_state)

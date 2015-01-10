@@ -274,13 +274,13 @@ protected:
         const ntuple::Muon& object = muon->GetNtupleObject<ntuple::Muon>();
 
         cut(true, ">0 mu cand");
-        
-        // DeltaZ already defined
-        const double DeltaZ = std::abs(object.vz - primaryVertex->GetPosition().Z());
+	cut(X(pt) > pt, "pt");        
+        // DeltaZ already defined - uncomment
+        // const double DeltaZ = std::abs(object.vz - primaryVertex->GetPosition().Z());
                          
-        // dB_PV already defined
-        const TVector3 mu_vertex(object.vx, object.vy, object.vz);
-        const double dB_PV = analysis::Calculate_dxy(mu_vertex, primaryVertex->GetPosition(), muon->GetMomentum());
+        // dB_PV already defined - uncomment
+        // const TVector3 mu_vertex(object.vx, object.vy, object.vz);
+        // const double dB_PV = analysis::Calculate_dxy(mu_vertex, primaryVertex->GetPosition(), muon->GetMomentum());
                                                          
     }
 
@@ -289,7 +289,8 @@ protected:
     {
         using namespace cuts::Htautau_Summer13::MuTau;
         using namespace cuts::Htautau_Summer13::MuTau::muonID;
-        const ntuple::Muon& object = muon->GetNtupleObject<ntuple::Muon>();
+	// uncomment object definition
+        //const ntuple::Muon& object = muon->GetNtupleObject<ntuple::Muon>();
 
         SelectMuon(muon, selectionManager, cut);
         
@@ -301,12 +302,13 @@ protected:
     {
         using namespace cuts::Htautau_Summer13::MuTau;
         using namespace cuts::Htautau_Summer13::MuTau::tauID;
-        const ntuple::Tau& object = tau->GetNtupleObject<ntuple::Tau>();
+	// uncomment object definition
+        // const ntuple::Tau& object = tau->GetNtupleObject<ntuple::Tau>();
 
         cut(true, ">0 tau cand");
         
-        // DeltaZ already defined
-        const double DeltaZ = std::abs(object.vz - primaryVertex->GetPosition().Z());
+        // DeltaZ already defined - uncomment
+        // const double DeltaZ = std::abs(object.vz - primaryVertex->GetPosition().Z());
                         
     }
 
@@ -315,7 +317,8 @@ protected:
     {
         using namespace cuts::Htautau_Summer13::MuTau;
         using namespace cuts::Htautau_Summer13::MuTau::tauID;
-        const ntuple::Tau& object = tau->GetNtupleObject<ntuple::Tau>();
+	// uncomment object definition
+        // const ntuple::Tau& object = tau->GetNtupleObject<ntuple::Tau>();
 
         SelectTau(tau, selectionManager, cut);
         
