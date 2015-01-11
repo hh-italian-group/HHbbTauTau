@@ -174,14 +174,16 @@ protected:
 
         PhysicalValueMap zttYield;
         if (useEmbedded){
+            // get DYembedded category
             const analysis::DataCategory& embedded = dataCategoryCollection.GetUniqueCategory(analysis::DataCategoryType::Embedded);
-            const analysis::DataCategory& TTembedded = dataCategoryCollection.GetUniqueCategory(analysis::DataCategoryType::TT_Embedded);
+            // get TTembedded category
+            //const analysis::DataCategory& TTembedded = ;
             TH1D* hist_embedded_inclusive = GetSignalHistogram(analysis::EventCategory::Inclusive, embedded.name, hist_name);
             // define histograms to evaluate the total yield
-            //TH1D* hist_embedded_category =
-            //TH1D* hist_TTembedded_inclusive =
-            //TH1D* hist_TTembedded_category =
-            //TH1D* hist_ztautau_inclusive =
+            TH1D* hist_embedded_category = nullptr;
+            TH1D* hist_TTembedded_inclusive = nullptr;
+            TH1D* hist_TTembedded_category = nullptr;
+            TH1D* hist_ztautau_inclusive = nullptr;
             if(!hist_embedded_inclusive)
                 throw analysis::exception("embedded hist in inclusive category not found");
             if(!hist_embedded_category)
