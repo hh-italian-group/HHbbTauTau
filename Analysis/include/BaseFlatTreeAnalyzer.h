@@ -259,20 +259,26 @@ protected:
     PhysicalValue CalculateYieldsForQCD(const std::string& hist_name, EventCategory eventCategory,
                                         EventRegion eventRegion, std::ostream& s_out)
     {
+        // get qcd and data category
         const analysis::DataCategory& qcd = dataCategoryCollection.GetUniqueCategory(analysis::DataCategoryType::QCD);
         const analysis::DataCategory& data = dataCategoryCollection.GetUniqueCategory(analysis::DataCategoryType::Data);
 
+        std::cout << "categories: " << qcd.name << " & " << data.name << std::endl;
         std::string bkg_yield_debug;
-        const analysis::PhysicalValue bkg_yield =
-                CalculateBackgroundIntegral(hist_name, eventCategory, eventRegion, qcd.name, false, bkg_yield_debug);
+        const analysis::PhysicalValue bkg_yield;
+                //use CalculateBackgroundIntegral
+                //CalculateBackgroundIntegral(hist_name, eventCategory, eventRegion, qcd.name, false, bkg_yield_debug);
 
         s_out << bkg_yield_debug;
 
-        auto hist_data = GetHistogram(eventCategory, data.name, eventRegion, hist_name);
+        auto hist_data = nullptr;
+                //GetHistogram(eventCategory, data.name, eventRegion, hist_name);
         if(!hist_data)
             throw analysis::exception("Unable to find data histograms for QCD yield estimation.");
-        const auto data_yield = analysis::Integral(*hist_data, true);
-        const analysis::PhysicalValue yield = data_yield - bkg_yield;
+        const analysis::PhysicalValue data_yield;
+                //= analysis::Integral(*hist_data, true);
+        const analysis::PhysicalValue yield;
+                //= data_yield - bkg_yield; //data - bkg
         s_out << "Data yield = " << data_yield << "\nData-MC yield = " << yield << std::endl;
         if(yield.value < 0) {
             std::cout << bkg_yield_debug << "\nData yield = " << data_yield << std::endl;

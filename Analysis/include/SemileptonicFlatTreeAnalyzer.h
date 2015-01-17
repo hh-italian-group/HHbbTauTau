@@ -132,16 +132,18 @@ protected:
                                                       analysis::EventCategory eventCategory,
                                                       std::ostream& s_out) override
     {
-        static const PhysicalValue sf(1.06, 0.001);
+        //sf is equal to 1.06
+        static const PhysicalValue sf;
         static const analysis::EventCategorySet categories= {analysis::EventCategory::TwoJets_TwoBtag};
         analysis::EventCategory refEventCategory = eventCategory;
         if(categories.count(eventCategory))
             //refEventCategory = analysis::MediumToLoose_EventCategoryMap.at(eventCategory);
             refEventCategory = analysis::EventCategory::TwoJets_Inclusive;
 
-        const analysis::PhysicalValue yield_SSIso =
-                CalculateYieldsForQCD(hist_name,refEventCategory,analysis::EventRegion::SS_Isolated, s_out);
-
+        const analysis::PhysicalValue yield_SSIso;
+                //use CalculateYieldsForQCD
+                //CalculateYieldsForQCD(hist_name,refEventCategory,analysis::EventRegion::SS_Isolated, s_out);
+        //FROM HERE TO CHANGE
         s_out << "yield_ssIso: " << yield_SSIso << "\n";
         if(refEventCategory == eventCategory)
             return sf*yield_SSIso;
@@ -173,17 +175,11 @@ protected:
         static const analysis::EventCategorySet inclusive_categories= {analysis::EventCategory::Inclusive,
                                                              analysis::EventCategory::TwoJets_Inclusive};
         analysis::EventCategory refEventCategory = eventCategory;
+        std::cout << "refEventCategory: " << refEventCategory << std::endl;
 
-        if(categories.count(eventCategory)){
-            refEventCategory = analysis::MediumToLoose_EventCategoryMap.at(eventCategory);
-            return EstimateQCDEx(hist_name,eventCategory,refEventCategory,analysis::EventRegion::SS_AntiIsolated,scale_factor,false);
-        }
-        else if (inclusive_categories.count(eventCategory)){
-            refEventCategory = analysis::Inclusive_EventCategoryMap.at(eventCategory);
-            return EstimateQCDEx(hist_name,eventCategory,refEventCategory,analysis::EventRegion::SS_Isolated,scale_factor,true);
-        }
-        else
-            return EstimateQCDEx(hist_name,eventCategory,refEventCategory,analysis::EventRegion::SS_AntiIsolated,scale_factor,false);
+        // implement the refEventCategory for each category
+        // return EstimateQCDEx
+
     }
 
     void EstimateQCDEx(const std::string& hist_name, analysis::EventCategory eventCategory,
