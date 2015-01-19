@@ -266,19 +266,19 @@ protected:
         std::cout << "categories: " << qcd.name << " & " << data.name << std::endl;
         std::string bkg_yield_debug;
         const analysis::PhysicalValue bkg_yield;
-                //use CalculateBackgroundIntegral
-                //CalculateBackgroundIntegral(hist_name, eventCategory, eventRegion, qcd.name, false, bkg_yield_debug);
+                //use CalculateBackgroundIntegral in Analysis/include/BaseFlatTreeAnalyzer.h line 655
+
 
         s_out << bkg_yield_debug;
 
         auto hist_data = nullptr;
-                //GetHistogram(eventCategory, data.name, eventRegion, hist_name);
+                //use function GetHistogram in Analysis/include/BaseFlatTreeAnalyzer.h line 342
         if(!hist_data)
             throw analysis::exception("Unable to find data histograms for QCD yield estimation.");
         const analysis::PhysicalValue data_yield;
-                //= analysis::Integral(*hist_data, true);
-        const analysis::PhysicalValue yield;
-                //= data_yield - bkg_yield; //data - bkg
+                //use function Integral in AnalysisBase/include/AnalysisMath.h line 73
+        const analysis::PhysicalValue yield; //data - bkg
+
         s_out << "Data yield = " << data_yield << "\nData-MC yield = " << yield << std::endl;
         if(yield.value < 0) {
             std::cout << bkg_yield_debug << "\nData yield = " << data_yield << std::endl;
