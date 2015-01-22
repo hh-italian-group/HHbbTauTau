@@ -264,8 +264,7 @@ protected:
 //                     analysis::Calculate_MT(selection.higgs->GetDaughter(analysis::Candidate::Type::Muon)->GetMomentum(),selection.MET_with_recoil_corrections.pt,selection.MET_with_recoil_corrections.phi) << std::endl;
         return selection;
     }
-
-    // MUON SELECTION
+    
     virtual void SelectMuon(const analysis::CandidatePtr& muon, analysis::SelectionManager& selectionManager,
                             cuts::Cutter& cut) override
     {
@@ -274,14 +273,21 @@ protected:
         const ntuple::Muon& object = muon->GetNtupleObject<ntuple::Muon>();
 
         cut(true, ">0 mu cand");
-	cut(X(pt) > pt, "pt");        
+        cut(X(pt) > pt, "pt");
+        cut(std::abs(X(eta)) < eta, "eta");
+        cut(X(isGlobalMuonPromptTight) == isGlobalMuonPromptTight, "tight");
+        cut(X(isPFMuon) == isPFMuon, "PF");
+        cut(X(nMatchedStations) > nMatched_Stations, "stations");
+        cut(X(pixHits) > pixHits, "pix_hits");
+        cut(X(trackerLayersWithMeasurement) > trackerLayersWithMeasurement, "layers");
         // DeltaZ already defined - uncomment
-        // const double DeltaZ = std::abs(object.vz - primaryVertex->GetPosition().Z());
-                         
+        const double DeltaZ = std::abs(object.vz - primaryVertex->GetPosition().Z());
+        cut(Y(DeltaZ) < dz, "dz");
+
         // dB_PV already defined - uncomment
-        // const TVector3 mu_vertex(object.vx, object.vy, object.vz);
-        // const double dB_PV = analysis::Calculate_dxy(mu_vertex, primaryVertex->GetPosition(), muon->GetMomentum());
-                                                         
+        const TVector3 mu_vertex(object.vx, object.vy, object.vz);
+        const double dB_PV = analysis::Calculate_dxy(mu_vertex, primaryVertex->GetPosition(), muon->GetMomentum());
+        cut(std::abs(Y(dB_PV)) < dB, "dB");
     }
 
     virtual void SelectSignalMuon(const analysis::CandidatePtr& muon,
@@ -289,27 +295,33 @@ protected:
     {
         using namespace cuts::Htautau_Summer13::MuTau;
         using namespace cuts::Htautau_Summer13::MuTau::muonID;
-	// uncomment object definition
-        //const ntuple::Muon& object = muon->GetNtupleObject<ntuple::Muon>();
+        // uncomment object definition
+        const ntuple::Muon& object = muon->GetNtupleObject<ntuple::Muon>();
 
         SelectMuon(muon, selectionManager, cut);
-        
+        cut(X(pfRelIso) < pFRelIso, "pFRelIso");
+
     }
 
-    // TAU SELECTION
     virtual void SelectTau(const analysis::CandidatePtr& tau, analysis::SelectionManager& selectionManager,
                            cuts::Cutter& cut) override
     {
         using namespace cuts::Htautau_Summer13::MuTau;
         using namespace cuts::Htautau_Summer13::MuTau::tauID;
-	// uncomment object definition
-        // const ntuple::Tau& object = tau->GetNtupleObject<ntuple::Tau>();
+        // uncomment object definition
+        const ntuple::Tau& object = tau->GetNtupleObject<ntuple::Tau>();
 
         cut(true, ">0 tau cand");
-        
+        cut(X(pt) > pt, "pt");
+        cut(std::abs(X(eta)) < eta, "eta");
+        cut(X(decayModeFinding) > decayModeFinding, "decay_mode");
+        cut(X(againstMuonLoose) > cuts::skim::MuTau::tauID::againstMuonLoose, "vs_mu_loose");
+        cut(X(againstElectronLoose) > againstElectronLoose, "vs_e_loose");
+        cut(X(byCombinedIsolationDeltaBetaCorrRaw3Hits) > cuts::skim::MuTau::tauID::byCombinedIsolationDeltaBetaCorrRaw3Hits, "relaxed_Iso3Hits");
+
         // DeltaZ already defined - uncomment
-        // const double DeltaZ = std::abs(object.vz - primaryVertex->GetPosition().Z());
-                        
+        const double DeltaZ = std::abs(object.vz - primaryVertex->GetPosition().Z());
+        cut(Y(DeltaZ) < dz, "dz");
     }
 
     virtual void SelectSignalTau(const analysis::CandidatePtr& tau,
@@ -317,12 +329,15 @@ protected:
     {
         using namespace cuts::Htautau_Summer13::MuTau;
         using namespace cuts::Htautau_Summer13::MuTau::tauID;
-	// uncomment object definition
-        // const ntuple::Tau& object = tau->GetNtupleObject<ntuple::Tau>();
+        // uncomment object definition
+        const ntuple::Tau& object = tau->GetNtupleObject<ntuple::Tau>();
 
         SelectTau(tau, selectionManager, cut);
-        
+        cut(X(againstMuonTight) > againstMuonTight, "vs_mu_tight");
+        cut(X(byCombinedIsolationDeltaBetaCorrRaw3Hits) < byCombinedIsolationDeltaBetaCorrRaw3Hits, "loose_Iso3Hits");
     }
+
+
 
     analysis::CandidatePtrVector CollectZmuons()
     {
