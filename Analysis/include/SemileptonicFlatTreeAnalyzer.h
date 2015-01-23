@@ -129,47 +129,36 @@ protected:
 
 
     virtual analysis::PhysicalValue CalculateQCDYield(const std::string& hist_name,
-                                                      analysis::EventCategory eventCategory,
-                                                      std::ostream& s_out) override
+                                                          analysis::EventCategory eventCategory,
+                                                          std::ostream& s_out) override
     {
-        //sf is equal to 1.06
-        static const PhysicalValue sf;
+        static const PhysicalValue sf(1.06, 0.001);
         static const analysis::EventCategorySet categories= {analysis::EventCategory::TwoJets_TwoBtag};
-        // refEventCategory is the category where you evaluate differently the yield
         analysis::EventCategory refEventCategory = eventCategory;
         if(categories.count(eventCategory))
             refEventCategory = analysis::EventCategory::TwoJets_Inclusive;
 
-        const analysis::PhysicalValue yield_SSIso;
-                //use CalculateYieldsForQCD in Analysis/include/BaseFlatTreeAnalyzer.h line 259
+        const analysis::PhysicalValue yield_SSIso =
+                CalculateYieldsForQCD(hist_name,refEventCategory,analysis::EventRegion::SS_Isolated, s_out);
 
         s_out << "yield_ssIso: " << yield_SSIso << "\n";
         if(refEventCategory == eventCategory)
             return sf*yield_SSIso;
 
-        // 2jet2tag category has an additional part to be evaluated from Data
         const analysis::DataCategory& data = dataCategoryCollection.GetUniqueCategory(analysis::DataCategoryType::Data);
-        s_out << "category: " << data.name << "\n";
 
-        auto hist_data_EvtCategory = nullptr;
-                //use function GetHistogram in Analysis/include/BaseFlatTreeAnalyzer.h line 342
+        auto hist_data_EvtCategory = GetHistogram(eventCategory, data.name, analysis::EventRegion::SS_AntiIsolated, hist_name);
         if(!hist_data_EvtCategory)
             throw analysis::exception("Unable to find hist_data_EvtCategory for QCD scale factors estimation - SS AntiIso");
-        const analysis::PhysicalValue yield_Data_EvtCategory;
-                //use function Integral in AnalysisBase/include/AnalysisMath.h line 73
+        const analysis::PhysicalValue yield_Data_EvtCategory = analysis::Integral(*hist_data_EvtCategory, true);
 
-        auto hist_data_RefCategory = nullptr;
-                //use function GetHistogram in Analysis/include/BaseFlatTreeAnalyzer.h line 342
+        auto hist_data_RefCategory = GetHistogram(refEventCategory, data.name, analysis::EventRegion::SS_AntiIsolated, hist_name);
         if(!hist_data_RefCategory)
             throw analysis::exception("Unable to find hist_data_RefCategory for QCD scale factors estimation - SS AntiIso");
-        const analysis::PhysicalValue yield_Data_RefCategory;
-                //use function Integral in AnalysisBase/include/AnalysisMath.h line 73
+        const analysis::PhysicalValue yield_Data_RefCategory = analysis::Integral(*hist_data_RefCategory, true);
 
-        // calculate the efficiency to go from event category selection to reference event category
-        const analysis::PhysicalValue evt_ToRef_category_sf;
-        s_out << "yield_Data_EvtCategory: " << yield_Data_EvtCategory <<
-                 "\n yield_Data_RefCategory: " << yield_Data_RefCategory <<
-                 "\n evt_ToRef_category_sf: " << evt_ToRef_category_sf << "\n";
+        const auto evt_ToRef_category_sf = yield_Data_EvtCategory/yield_Data_RefCategory;
+        s_out << "evt_ToRef_category_sf: " << evt_ToRef_category_sf << "\n";
 
         return sf * yield_SSIso * evt_ToRef_category_sf;
     }
@@ -183,11 +172,17 @@ protected:
         static const analysis::EventCategorySet inclusive_categories= {analysis::EventCategory::Inclusive,
                                                              analysis::EventCategory::TwoJets_Inclusive};
         analysis::EventCategory refEventCategory = eventCategory;
-        std::cout << "refEventCategory: " << refEventCategory << std::endl;
 
-        // implement the refEventCategory for each category
-        // return EstimateQCDEx
-
+        if(categories.count(eventCategory)){
+            refEventCategory = analysis::MediumToLoose_EventCategoryMap.at(eventCategory);
+            return EstimateQCDEx(hist_name,eventCategory,refEventCategory,analysis::EventRegion::SS_AntiIsolated,scale_factor,false);
+        }
+        else if (inclusive_categories.count(eventCategory)){
+            refEventCategory = analysis::Inclusive_EventCategoryMap.at(eventCategory);
+            return EstimateQCDEx(hist_name,eventCategory,refEventCategory,analysis::EventRegion::SS_Isolated,scale_factor,true);
+        }
+        else
+            return EstimateQCDEx(hist_name,eventCategory,refEventCategory,analysis::EventRegion::SS_AntiIsolated,scale_factor,false);
     }
 
     void EstimateQCDEx(const std::string& hist_name, analysis::EventCategory eventCategory,

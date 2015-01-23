@@ -40,6 +40,39 @@ public:
     TH1D_ENTRY_CUSTOM_EX(m_ttbb, M_ttbb_Bins(), "M_{#tau#taubb}[GeV]", "Events", false, 1.1)
     TH1D_ENTRY_CUSTOM_EX(m_ttbb_kinfit, M_ttbb_Bins(), "M_{#tau#taubb}[GeV]", "Events", false, 1.1)
 
+    TH1D_ENTRY_EX(pt_1, 20, 0, 200, "P_{T}(leading#tau_{h})[GeV]", "Events", false, 1.1)
+    TH1D_ENTRY_EX(eta_1, 25, -2.5, 2.5, "#eta(leading#tau_{h})", "Events", false, 2)
+    TH1D_ENTRY_EX(pt_2, 20, 0, 200, "P_{T}(subleading#tau_{h})[GeV]", "Events", false, 1)
+    TH1D_ENTRY_EX(eta_2, 25, -2.5, 2.5, "#eta(subleading#tau_{h})", "Events", false, 2)
+    TH1D_ENTRY_EX(pt_b1, 20, 0, 200, "P_{T}[GeV](leading_jet)", "Events", false, 1.1)
+    TH1D_ENTRY_EX(eta_b1, 25, -2.5, 2.5, "#eta(leading_jet)", "Events", false, 2)
+    TH1D_ENTRY_EX(csv_b1, 25, 0, 1, "CSV(leading_jet)", "Events", false, 1.1)
+    TH1D_ENTRY_EX(pt_b2, 20, 0, 200, "P_{T}[GeV](subleading_jet)", "Events", false, 1.1)
+    TH1D_ENTRY_EX(eta_b2, 25, -2.5, 2.5, "#eta(subleading_jet)", "Events", false, 2)
+    TH1D_ENTRY_EX(csv_b2, 25, 0, 1, "CSV(subleading_jet)", "Events", false, 1.1)
+    TH1D_ENTRY_EX(pt_H_tt, 20, 0, 300, "P_{T}[GeV]", "Events", false, 1.1)
+    TH1D_ENTRY_EX(pt_H_bb, 20, 0, 300, "P_{T}[GeV]", "Events", false, 1.1)
+    TH1D_ENTRY_EX(pt_H_hh, 20, 0, 300, "P_{T}[GeV]", "Events", false, 1.1)
+    TH1D_ENTRY_EX(m_bb, 30, 0, 600, "M_{jj}[GeV]", "dN/dm_{bb}[1/GeV]", false, 1.1)
+    TH1D_ENTRY_EX(DeltaPhi_tt, 22, 0., 3.3, "#Delta#Phi_{#tau#tau}[rad]", "Events", false, 1.3)
+    TH1D_ENTRY_EX(DeltaPhi_bb, 22, 0., 3.3, "#Delta#Phi_{bb}[rad]", "Events", false, 1.8)
+    TH1D_ENTRY_EX(DeltaPhi_bb_MET, 22, 0., 3.3, "#Delta#Phi_{bb,MET}[rad]", "Events", false, 1.5)
+    TH1D_ENTRY_EX(DeltaPhi_tt_MET, 22, 0., 3.3, "#Delta#Phi_{#tau#tau,MET}[rad]", "Events", false, 1.5)
+    TH1D_ENTRY_EX(DeltaPhi_hh, 22, 0., 3.3, "#Delta#Phi_{#tau#taubb}[rad]", "Events", false, 1.5)
+    TH1D_ENTRY_EX(DeltaR_tt, 40, 0, 6, "#DeltaR_{#tau#tau}", "Events", false, 1.1)
+    TH1D_ENTRY_EX(DeltaR_bb, 40, 0, 6, "#DeltaR_{bb}[rad]", "Events", false, 1.7)
+    TH1D_ENTRY_EX(DeltaR_hh, 40, 0, 6, "#DeltaR_{#tau#taubb}[rad]", "Events", false, 1.5)
+    TH1D_ENTRY_EX(mt_2, 20, 0, 200, "M_{T}[GeV]", "Events", false, 1.1)
+    TH1D_ENTRY_EX(pt_H_tt_MET, 20, 0, 300, "P_{T}[GeV]", "Evnets", false, 1.1)
+    TH1D_ENTRY_EX(convergence, 10, -3.5, 6.5, "Fit_convergence", "Events", false, 1.1)
+    TH1D_ENTRY_EX(chi2, 20, 0, 100, "#chi^{2}", "Events", false, 1.1)
+    TH1D_ENTRY_EX(fit_probability, 20, 0, 1, "Fit_probability", "Events", false, 1.1)
+    TH1D_ENTRY_EX(pull_balance, 20, -10, 10, "pull_balance", "Events", false, 2)
+    TH1D_ENTRY_EX(pull_balance_1, 100, -10, 10, "pull_balance_1", "Events", false, 1.1)
+    TH1D_ENTRY_EX(pull_balance_2, 100, -10, 10, "pull_balance_1", "Events", false, 1.1)
+    TH1D_ENTRY_EX(MET, 20, 0, 100, "E_{T}^{miss}[GeV]", "Events", false, 1.1)
+
+
 
     virtual const std::vector<double>& M_tt_Bins() const
     {
@@ -87,7 +120,7 @@ public:
     }
 
     virtual void Fill(const FlatEventInfo& eventInfo, double weight, EventEnergyScale eventEnergyScale,
-                      EventSubCategory subCategory)
+                          EventSubCategory subCategory)
     {
         const ntuple::Flat& event = *eventInfo.event;
         const std::string key = HistogramSuffix(subCategory, eventEnergyScale);
@@ -96,9 +129,49 @@ public:
         m_sv(key).Fill(mass_tautau, weight);
         if (eventInfo.fitResults.has_valid_mass)
             m_ttbb_kinfit(key).Fill(eventInfo.fitResults.mass, weight);
+        //FillSlice(m_bb_slice(key), mass_tautau, eventInfo.Hbb.M(), weight);
 
         if (eventEnergyScale != EventEnergyScale::Central) return;
+
+        pt_1(key).Fill(event.pt_1, weight);
+        eta_1(key).Fill(event.eta_1, weight);
+        pt_2(key).Fill(event.pt_2, weight);
+        eta_2(key).Fill(event.eta_2, weight);
+        DeltaPhi_tt(key).Fill(std::abs(eventInfo.lepton_momentums.at(0).DeltaPhi(eventInfo.lepton_momentums.at(1))), weight);
+        DeltaR_tt(key).Fill(eventInfo.lepton_momentums.at(0).DeltaR(eventInfo.lepton_momentums.at(1)), weight);
+        pt_H_tt(key).Fill(eventInfo.Htt.Pt(),weight);
+
         m_vis(key).Fill(eventInfo.Htt.M(),weight);
+        pt_H_tt_MET(key).Fill(eventInfo.Htt_MET.Pt(), weight);
+        DeltaPhi_tt_MET(key).Fill(std::abs(eventInfo.Htt.DeltaPhi(eventInfo.MET)), weight);
+        mt_2(key).Fill(event.mt_2, weight);
+        MET(key).Fill(eventInfo.MET.Pt(),weight);
+
+        if(!eventInfo.has_bjet_pair) return;
+        pt_b1(key).Fill(eventInfo.bjet_momentums.at(eventInfo.selected_bjets.first).Pt(), weight);
+        eta_b1(key).Fill(eventInfo.bjet_momentums.at(eventInfo.selected_bjets.first).Eta(), weight);
+        csv_b1(key).Fill(eventInfo.event->csv_Bjets.at(eventInfo.selected_bjets.first), weight);
+        pt_b2(key).Fill(eventInfo.bjet_momentums.at(eventInfo.selected_bjets.second).Pt(), weight);
+        eta_b2(key).Fill(eventInfo.bjet_momentums.at(eventInfo.selected_bjets.second).Eta(), weight);
+        csv_b2(key).Fill(eventInfo.event->csv_Bjets.at(eventInfo.selected_bjets.second), weight);
+        DeltaPhi_bb(key).Fill(std::abs(eventInfo.bjet_momentums.at(eventInfo.selected_bjets.first).DeltaPhi(
+                                       eventInfo.bjet_momentums.at(eventInfo.selected_bjets.second))), weight);
+        DeltaR_bb(key).Fill(eventInfo.bjet_momentums.at(eventInfo.selected_bjets.first).DeltaR(
+                                     eventInfo.bjet_momentums.at(eventInfo.selected_bjets.second)), weight);
+        pt_H_bb(key).Fill(eventInfo.Hbb.Pt(),weight);
+        m_bb(key).Fill(eventInfo.Hbb.M(), weight);
+        DeltaPhi_bb_MET(key).Fill(std::abs(eventInfo.Hbb.DeltaPhi(eventInfo.MET)), weight);
+        DeltaPhi_hh(key).Fill(std::abs(eventInfo.Htt.DeltaPhi(eventInfo.Hbb)), weight);
+        DeltaR_hh(key).Fill(eventInfo.Htt.DeltaR(eventInfo.Hbb), weight);
+        m_ttbb(key).Fill(eventInfo.resonance.M(), weight);
+        pt_H_hh(key).Fill(eventInfo.resonance.Pt(), weight);
+
+        convergence(key).Fill(eventInfo.fitResults.convergence,weight);
+        chi2(key).Fill(eventInfo.fitResults.chi2,weight);
+        fit_probability(key).Fill(eventInfo.fitResults.fit_probability,weight);
+        pull_balance(key).Fill(eventInfo.fitResults.pull_balance,weight);
+        pull_balance_1(key).Fill(eventInfo.fitResults.pull_balance_1,weight);
+        pull_balance_2(key).Fill(eventInfo.fitResults.pull_balance_2,weight);
     }
 
     void FillSubCategories(const FlatEventInfo& eventInfo, double weight, EventEnergyScale eventEnergyScale)

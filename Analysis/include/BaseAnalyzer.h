@@ -67,6 +67,14 @@ public:
     TH1D_ENTRY_FIX(N_objects, 1, 500, -0.5)
     TH1D_ENTRY(Mass, 3000, 0.0, 3000.0)
     TH1D_ENTRY(Htautau_Mass, 60, 0.0, 300.0)
+    TH1D_ENTRY(Htautau_Eta, 50, -2.5, 2.5)
+    TH1D_ENTRY(Htautau_Pt, 20, 0.0, 100.0)
+    TH1D_ENTRY(Htautau_Muon_Eta, 50, -2.5, 2.5)
+    TH1D_ENTRY(Htautau_Muon_Pt, 20, 0.0, 100.0)
+    TH1D_ENTRY(Htautau_Tau_Eta, 50, -2.5, 2.5)
+    TH1D_ENTRY(Htautau_Tau_Pt, 20, 0.0, 100.0)
+    TH1D_ENTRY(DeltaPhi_Muon_Tau, 60, -3.2, 3.2)
+    TH1D_ENTRY(DeltaR_Muon_Tau, 60, -3.2, 3.2)
 };
 
 class BaseAnalyzer {

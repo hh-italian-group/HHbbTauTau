@@ -231,6 +231,18 @@ protected:
 
         selection.higgs = SelectSemiLeptonicHiggs(higgsTriggered);
         GetAnaData().Htautau_Mass().Fill(selection.higgs->GetMomentum().M());
+        GetAnaData().Htautau_Eta().Fill(selection.higgs->GetMomentum().Eta());
+        GetAnaData().Htautau_Pt().Fill(selection.higgs->GetMomentum().Pt());
+        const CandidatePtr muon_from_Higgs = selection.higgs->GetDaughter(Candidate::Type::Muon);
+        const CandidatePtr tau_from_Higgs = selection.higgs->GetDaughter(Candidate::Type::Tau);
+        GetAnaData().Htautau_Muon_Eta().Fill(muon_from_Higgs->GetMomentum().Eta());
+        GetAnaData().Htautau_Muon_Pt().Fill(muon_from_Higgs->GetMomentum().Pt());
+        GetAnaData().Htautau_Tau_Eta().Fill(tau_from_Higgs->GetMomentum().Eta());
+        GetAnaData().Htautau_Tau_Pt().Fill(tau_from_Higgs->GetMomentum().Pt());
+        const double DeltaR = muon_from_Higgs->GetMomentum().DeltaR(tau_from_Higgs->GetMomentum());
+        const double DeltaPhi = muon_from_Higgs->GetMomentum().DeltaPhi(tau_from_Higgs->GetMomentum());
+        GetAnaData().DeltaPhi_Muon_Tau().Fill(DeltaPhi);
+        GetAnaData().DeltaR_Muon_Tau().Fill(DeltaR);
         selection.eventType = DoEventCategorization(selection.higgs);
 
         cut(!config.isDYEmbeddedSample() || selection.eventType == ntuple::EventType::ZTT, "tau match with MC truth");
@@ -254,6 +266,12 @@ protected:
 
         selection.jets = CollectJets(selection.jetsPt20);
         selection.bjets_all = CollectBJets(selection.jetsPt20, false, false);
+//        if (selection.bjets_all.size() >= 2){
+//            const CandidatePtr first_bjet = selection.bjets_all.at(0);
+//            const TLorentzVector first_bjet_momentum = first_bjet->GetMomentum();
+//            const CandidatePtr second_bjet = selection.bjets_all.at(1);
+//            const TLorentzVector second_bjet_momentum = first_bjet->GetMomentum();
+//        }
         selection.retagged_bjets = CollectBJets(selection.jetsPt20, config.isMC(), true);
 
 

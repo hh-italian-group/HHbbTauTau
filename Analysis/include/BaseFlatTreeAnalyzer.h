@@ -174,16 +174,13 @@ protected:
 
         PhysicalValueMap zttYield;
         if (useEmbedded){
-            // get DYembedded category
             const analysis::DataCategory& embedded = dataCategoryCollection.GetUniqueCategory(analysis::DataCategoryType::Embedded);
-            // get TTembedded category
-            //const analysis::DataCategory& TTembedded = ;
+            const analysis::DataCategory& TTembedded = dataCategoryCollection.GetUniqueCategory(analysis::DataCategoryType::TT_Embedded);
             TH1D* hist_embedded_inclusive = GetSignalHistogram(analysis::EventCategory::Inclusive, embedded.name, hist_name);
-            // define histograms to evaluate the total yield
-            TH1D* hist_embedded_category = nullptr;
-            TH1D* hist_TTembedded_inclusive = nullptr;
-            TH1D* hist_TTembedded_category = nullptr;
-            TH1D* hist_ztautau_inclusive = nullptr;
+            TH1D* hist_embedded_category = GetSignalHistogram(eventCategory, embedded.name, hist_name);
+            TH1D* hist_TTembedded_inclusive = GetSignalHistogram(analysis::EventCategory::Inclusive, TTembedded.name, hist_name);
+            TH1D* hist_TTembedded_category = GetSignalHistogram(eventCategory, TTembedded.name, hist_name);
+            TH1D* hist_ztautau_inclusive = GetSignalHistogram(analysis::EventCategory::Inclusive, ZTT_MC.name, hist_name);
             if(!hist_embedded_inclusive)
                 throw analysis::exception("embedded hist in inclusive category not found");
             if(!hist_embedded_category)
@@ -195,13 +192,12 @@ protected:
             if(!hist_ztautau_inclusive )
                 throw analysis::exception("ztt hist in inclusive category not found");
 
-            //evaluate total yield
-            const analysis::PhysicalValue n_emb_inclusive;
-
-            const analysis::PhysicalValue n_emb_category;
-            const analysis::PhysicalValue n_ztautau_inclusive;
-            const analysis::PhysicalValue embedded_eff;
-
+            const analysis::PhysicalValue n_emb_inclusive =
+                    analysis::Integral(*hist_embedded_inclusive, true) - analysis::Integral(*hist_TTembedded_inclusive, true);
+            const analysis::PhysicalValue n_emb_category =
+                    analysis::Integral(*hist_embedded_category, true) - analysis::Integral(*hist_TTembedded_category, true);
+            const analysis::PhysicalValue n_ztautau_inclusive = analysis::Integral(*hist_ztautau_inclusive, true);
+            const analysis::PhysicalValue embedded_eff = n_emb_category/n_emb_inclusive;
             zttYield[analysis::EventRegion::OS_Isolated] = n_ztautau_inclusive * embedded_eff;
         }
 
@@ -257,36 +253,29 @@ protected:
     }
 
     PhysicalValue CalculateYieldsForQCD(const std::string& hist_name, EventCategory eventCategory,
-                                        EventRegion eventRegion, std::ostream& s_out)
-    {
-        // get qcd and data category
-        const analysis::DataCategory& qcd = dataCategoryCollection.GetUniqueCategory(analysis::DataCategoryType::QCD);
-        const analysis::DataCategory& data = dataCategoryCollection.GetUniqueCategory(analysis::DataCategoryType::Data);
+                                           EventRegion eventRegion, std::ostream& s_out)
+   {
+       const analysis::DataCategory& qcd = dataCategoryCollection.GetUniqueCategory(analysis::DataCategoryType::QCD);
+       const analysis::DataCategory& data = dataCategoryCollection.GetUniqueCategory(analysis::DataCategoryType::Data);
 
-        std::cout << "categories: " << qcd.name << " & " << data.name << std::endl;
-        std::string bkg_yield_debug;
-        const analysis::PhysicalValue bkg_yield;
-                //use CalculateBackgroundIntegral in Analysis/include/BaseFlatTreeAnalyzer.h line 655
+       std::string bkg_yield_debug;
+       const analysis::PhysicalValue bkg_yield = CalculateBackgroundIntegral(hist_name, eventCategory, eventRegion, qcd.name, false, bkg_yield_debug);
 
+       s_out << bkg_yield_debug;
 
-        s_out << bkg_yield_debug;
-
-        auto hist_data = nullptr;
-                //use function GetHistogram in Analysis/include/BaseFlatTreeAnalyzer.h line 342
-        if(!hist_data)
-            throw analysis::exception("Unable to find data histograms for QCD yield estimation.");
-        const analysis::PhysicalValue data_yield;
-                //use function Integral in AnalysisBase/include/AnalysisMath.h line 73
-        const analysis::PhysicalValue yield; //data - bkg
-
-        s_out << "Data yield = " << data_yield << "\nData-MC yield = " << yield << std::endl;
-        if(yield.value < 0) {
-            std::cout << bkg_yield_debug << "\nData yield = " << data_yield << std::endl;
-            throw exception("Negative QCD yield for histogram '") << hist_name << "' in " << eventCategory << " "
-                                                                  << eventRegion << ".";
-        }
-        return yield;
-    }
+       auto hist_data = GetHistogram(eventCategory, data.name, eventRegion, hist_name);
+       if(!hist_data)
+           throw analysis::exception("Unable to find data histograms for QCD yield estimation.");
+       const analysis::PhysicalValue data_yield = analysis::Integral(*hist_data, true);
+       const analysis::PhysicalValue yield = data_yield - bkg_yield; //data - bkg
+       s_out << "Data yield = " << data_yield << "\nData-MC yield = " << yield << std::endl;
+       if(yield.value < 0) {
+           std::cout << bkg_yield_debug << "\nData yield = " << data_yield << std::endl;
+           throw exception("Negative QCD yield for histogram '") << hist_name << "' in " << eventCategory << " "
+                                                                 << eventRegion << ".";
+       }
+       return yield;
+   }
 
     virtual void EstimateWjets(EventCategory eventCategory, const std::string& hist_name,
                          const PhysicalValueMap& yield_map)
