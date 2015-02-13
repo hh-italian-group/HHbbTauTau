@@ -47,9 +47,13 @@
     SIMPLE_VAR(Float_t, isoweight_2) /* Effieiency Scale factor (all components multiplied in) */ \
     SIMPLE_VAR(Float_t, fakeweight) /* Effieiency Scale factor (all components multiplied in) */ \
     SIMPLE_VAR(Float_t, effweight) /* Effieiency Scale factor (all components multiplied in) */ \
+    SIMPLE_VAR(Float_t, DYweight) /* Effieiency Scale factor (all components multiplied in) */ \
+    SIMPLE_VAR(Float_t, decayModeWeight_1) /* Tau decay mode weight for the first leg. */ \
+    SIMPLE_VAR(Float_t, decayModeWeight_2) /* Tau decay mode weight for the second leg. */ \
     SIMPLE_VAR(Float_t, weight) /* mcweight*puweight*effweight */ \
     SIMPLE_VAR(Float_t, embeddedWeight) /*  */ \
     SIMPLE_VAR(Float_t, signalWeight) /*  */ \
+    SIMPLE_VAR(Float_t, etau_fakerate) /* e to tau fake weight*/ \
     /* SV Fit variables */ \
     SIMPLE_VAR(Float_t, mvis) /* SV Fit using integration method */ \
     SIMPLE_VAR(Float_t, m_sv) /* SV Fit using integration method */ \
