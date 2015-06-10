@@ -1,12 +1,12 @@
 /*!
  * \class AnalyzerData AnalyzerData.h
  * \brief Base class for Analyzer data containers.
- * \author Konstantin Androsov (Siena University, INFN Pisa)
- * \author Maria Teresa Grippo (Siena University, INFN Pisa)
+ * \author Konstantin Androsov (University of Siena, INFN Pisa)
+ * \author Maria Teresa Grippo (University of Siena, INFN Pisa)
  * \date 2013-03-29 created
  *
- * Copyright 2014 Konstantin Androsov <konstantin.androsov@gmail.com>,
- *                Maria Teresa Grippo <grippomariateresa@gmail.com>
+ * Copyright 2013-2015 Konstantin Androsov <konstantin.androsov@gmail.com>,
+ *                     Maria Teresa Grippo <grippomariateresa@gmail.com>
  *
  * This file is part of X->HH->bbTauTau.
  *
@@ -28,15 +28,15 @@
 
 #include <vector>
 #include <map>
+#include <set>
 #include <stdexcept>
 #include <sstream>
 #include <typeindex>
 
-#include <TFile.h>
 #include <TH1D.h>
 #include <TH2D.h>
-#include <Compression.h>
 
+#include "RootExt.h"
 #include "SmartHistogram.h"
 
 #define ANA_DATA_ENTRY(type, name, ...) \
@@ -56,12 +56,12 @@
 #define TH1D_ENTRY_FIX(name, binsizex, nbinsx, xlow) TH1D_ENTRY(name, nbinsx, xlow, (xlow+binsizex*nbinsx))
 #define TH1D_ENTRY_CUSTOM(name, bins) ANA_DATA_ENTRY(TH1D, name, bins)
 
-#define TH1D_ENTRY_EX(name, nbinsx, xlow, xup, x_axis_title, y_axis_title, use_log_y, max_y_sf, store) \
-    ANA_DATA_ENTRY(TH1D, name, nbinsx, xlow, xup, x_axis_title, y_axis_title, use_log_y, max_y_sf, store)
-#define TH1D_ENTRY_FIX_EX(name, binsizex, nbinsx, xlow, x_axis_title, y_axis_title, use_log_y, max_y_sf, store) \
-    TH1D_ENTRY_EX(name, nbinsx, xlow, (xlow+binsizex*nbinsx), x_axis_title, y_axis_title, use_log_y, max_y_sf, store)
-#define TH1D_ENTRY_CUSTOM_EX(name, bins, x_axis_title, y_axis_title, use_log_y, max_y_sf, store) \
-    ANA_DATA_ENTRY(TH1D, name, bins, x_axis_title, y_axis_title, use_log_y, max_y_sf, store)
+#define TH1D_ENTRY_EX(name, nbinsx, xlow, xup, x_axis_title, y_axis_title, use_log_y, max_y_sf, divide, store) \
+    ANA_DATA_ENTRY(TH1D, name, nbinsx, xlow, xup, x_axis_title, y_axis_title, use_log_y, max_y_sf, divide, store)
+#define TH1D_ENTRY_FIX_EX(name, binsizex, nbinsx, xlow, x_axis_title, y_axis_title, use_log_y, max_y_sf, divide, store) \
+    TH1D_ENTRY_EX(name, nbinsx, xlow, (xlow+binsizex*nbinsx), x_axis_title, y_axis_title, use_log_y, max_y_sf, divide, store)
+#define TH1D_ENTRY_CUSTOM_EX(name, bins, x_axis_title, y_axis_title, use_log_y, max_y_sf, divide, store) \
+    ANA_DATA_ENTRY(TH1D, name, bins, x_axis_title, y_axis_title, use_log_y, max_y_sf, divide, store)
 
 #define TH2D_ENTRY(name, nbinsx, xlow, xup, nbinsy, ylow, yup) \
     ANA_DATA_ENTRY(TH2D, name, nbinsx, xlow, xup, nbinsy, ylow, yup)
@@ -122,65 +122,44 @@ public:
         return index;
     }
 
-    static TFile* CreateFile(const std::string& fileName)
-    {
-        TFile* file = new TFile(fileName.c_str(), "RECREATE", "", ROOT::kZLIB * 100 + 9);
-        if(file->IsZombie()) {
-            std::ostringstream ss;
-            ss << "File '" << fileName << "' not created.";
-            throw std::runtime_error(ss.str());
-        }
-        return file;
-    }
-
 public:
-    AnalyzerData() : outputFile(nullptr), ownOutputFile(false), directory(nullptr)
+    AnalyzerData() : directory(nullptr)
     {
         data_vector.assign(MaxIndex, nullptr);
     }
 
-    AnalyzerData(const std::string& outputFileName)
-        : outputFile(CreateFile(outputFileName)), ownOutputFile(true)
+    explicit AnalyzerData(const std::string& outputFileName)
+        : outputFile(CreateRootFile(outputFileName))
     {
         data_vector.assign(MaxIndex, nullptr);
-        directory = outputFile;
-        cd();
+        directory = outputFile.get();
     }
 
-    AnalyzerData(TFile& _outputFile, const std::string& directoryName = "")
-        : outputFile(&_outputFile), ownOutputFile(false)
+    explicit AnalyzerData(std::shared_ptr<TFile> _outputFile, const std::string& directoryName = "")
+        : outputFile(_outputFile)
     {
+        if(!outputFile)
+            throw analysis::exception("Output file is nullptr.");
         data_vector.assign(MaxIndex, nullptr);
         if (directoryName.size()){
             outputFile->mkdir(directoryName.c_str());
             directory = outputFile->GetDirectory(directoryName.c_str());
             if(!directory)
-                throw std::runtime_error("Unable to create analyzer data directory.");
+                throw analysis::exception("Unable to create analyzer data directory.");
         } else
-            directory = outputFile;
-        cd();
+            directory = outputFile.get();
     }
 
     virtual ~AnalyzerData()
     {
-        cd();
         for(const auto& iter : data) {
             if(directory)
                 iter.second->WriteRootObject();
             delete iter.second;
         }
-        if(ownOutputFile)
-            delete outputFile;
     }
 
-    TFile& getOutputFile() { return *outputFile; }
-
-    void cd() const
-    {
-        if(directory && !directory->cd())
-            throw std::runtime_error("Unable to cd to analyzer data directory.");
-    }
-
+    std::shared_ptr<TFile> getOutputFile() { return outputFile; }
     bool Contains(const std::string& name) const { return data.find(name) != data.end(); }
 
     void Erase(const std::string& name)
@@ -199,11 +178,8 @@ public:
     bool CheckType(const std::string& name) const
     {
         const auto iter = data.find(name);
-        if(iter == data.end()) {
-            std::ostringstream ss;
-            ss << "Histogram '" << name << "' not found.";
-            throw std::runtime_error(ss.str());
-        }
+        if(iter == data.end())
+            analysis::exception("Histogram '") << name << "' not found.";
         SmartHistogram<ValueType>* result = dynamic_cast< SmartHistogram<ValueType>* >(iter->second);
         return result;
     }
@@ -250,8 +226,7 @@ public:
     SmartHistogram<ValueType>& Clone(const SmartHistogram<ValueType>& original)
     {
         if(data.count(original.Name()))
-            throw std::runtime_error("histogram already exists");
-        cd();
+            throw analysis::exception("histogram already exists");
         SmartHistogram<ValueType>* h = new SmartHistogram<ValueType>(original);
         data[h->Name()] = h;
         HistogramNames<ValueType>().insert(h->Name());
@@ -278,7 +253,6 @@ private:
     {
         auto iter = data.find(full_name);
         if(iter == data.end()) {
-            cd();
             AbstractHistogram* h = HistogramFactory<ValueType>::Make(full_name, args...);
             data[full_name] = h;
             HistogramNames<ValueType>().insert(h->Name());
@@ -296,20 +270,16 @@ private:
     SmartHistogram<ValueType>& GetAt(const DataMap::const_iterator& iter) const
     {
         if(iter == data.end())
-            throw std::runtime_error("Invalid iterator to of a histogram collection.");
+            throw analysis::exception("Invalid iterator to of a histogram collection.");
 
         SmartHistogram<ValueType>* result = dynamic_cast< SmartHistogram<ValueType>* >(iter->second);
-        if(!result) {
-            std::ostringstream ss;
-            ss << "Wrong type for histogram '" << iter->first << "'.";
-            throw std::runtime_error(ss.str());
-        }
+        if(!result)
+            throw analysis::exception("Wrong type for histogram '") << iter->first << "'.";
         return *result;
     }
 
 private:
-    TFile* outputFile;
-    bool ownOutputFile;
+    std::shared_ptr<TFile> outputFile;
     TDirectory* directory;
 
     DataMap data;

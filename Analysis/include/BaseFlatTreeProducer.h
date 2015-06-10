@@ -1,8 +1,8 @@
 /*!
  * \file BaseFlatTreeProducer.h
  * \brief Definition of BaseFlatTreeProducer class, the base class for flat tree producers.
- * \author Konstantin Androsov (Siena University, INFN Pisa)
- * \author Maria Teresa Grippo (Siena University, INFN Pisa)
+ * \author Konstantin Androsov (University of Siena, INFN Pisa)
+ * \author Maria Teresa Grippo (University of Siena, INFN Pisa)
  * \date 2014-07-11 created
  *
  * Copyright 2014 Konstantin Androsov <konstantin.androsov@gmail.com>,
@@ -41,9 +41,8 @@ public:
         : BaseAnalyzer(inputFileName, outputFileName, configFileName, _prefix, _maxNumberOfEvents),
           flatTree(_flatTree), writeFlatTree(!flatTree)
     {
-        outputFile->cd();
         if(!flatTree)
-            flatTree = std::shared_ptr<ntuple::FlatTree>(new ntuple::FlatTree("flatTree"));
+            flatTree = std::shared_ptr<ntuple::FlatTree>(new ntuple::FlatTree("flatTree", outputFile.get(), false));
     }
 
     virtual ~BaseFlatTreeProducer() override

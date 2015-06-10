@@ -1,8 +1,8 @@
 /*!
  * \file FlatTreeProducer.C
  * \brief Analyzer which recalls three ananlysis to produce flatTree for Htautau using looser selection.
- * \author Konstantin Androsov (Siena University, INFN Pisa)
- * \author Maria Teresa Grippo (Siena University, INFN Pisa)
+ * \author Konstantin Androsov (University of Siena, INFN Pisa)
+ * \author Maria Teresa Grippo (University of Siena, INFN Pisa)
  * \date 2014-07-11 created
  *
  * Copyright 2014 Konstantin Androsov <konstantin.androsov@gmail.com>,
@@ -37,7 +37,7 @@ public:
                      const std::string& outputETauFile, const std::string& outputTauTauFile,
                      const std::string& configFileName, const std::string& _prefix = "none",
                      size_t _maxNumberOfEvents = 0)
-        : config(configFileName), timer(config.ReportInterval()), maxNumberOfEvents(_maxNumberOfEvents),
+        : config(configFileName), timer(config.ReportInterval(), std::cout), maxNumberOfEvents(_maxNumberOfEvents),
           treeExtractor(_prefix == "none" ? "" : _prefix, inputFileName, config.extractMCtruth(), config.MaxTreeVersion()),
           HmutauAnalyzer(inputFileName, outputMuTauFile, configFileName, "external", _maxNumberOfEvents),
           HetauAnalyzer(inputFileName, outputETauFile, configFileName, "external", _maxNumberOfEvents),
@@ -63,7 +63,7 @@ public:
 
 private:
     analysis::Config config;
-    tools::Timer timer;
+    analysis::tools::ProgressReporter timer;
     size_t maxNumberOfEvents;
     std::shared_ptr<const analysis::EventDescriptor> event;
     analysis::TreeExtractor treeExtractor;

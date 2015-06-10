@@ -1,8 +1,8 @@
 /*!
  * \file EventWeights.h
  * \brief Definition of the class to calculate and store different event weights.
- * \author Konstantin Androsov (Siena University, INFN Pisa)
- * \author Maria Teresa Grippo (Siena University, INFN Pisa)
+ * \author Konstantin Androsov (University of Siena, INFN Pisa)
+ * \author Maria Teresa Grippo (University of Siena, INFN Pisa)
  * \date 2014-11-17 created
  *
  * Copyright 2014 Konstantin Androsov <konstantin.androsov@gmail.com>,
@@ -198,14 +198,9 @@ protected:
 private:
     static std::shared_ptr<TH1D> LoadPUWeights(const std::string& reweightFileName)
     {
-        std::shared_ptr<TFile> reweightFile(new TFile(reweightFileName.c_str(),"READ"));
-        if(reweightFile->IsZombie())
-            throw exception("reweight file ") << reweightFileName << " not found.";
-        TObject* originalWeights = reweightFile->Get("weights");
-        if (!originalWeights)
-            throw exception("histograms with weights not found");
-        std::shared_ptr<TH1D> weights_clone(static_cast<TH1D*>(originalWeights->Clone("PUweights")));
-        weights_clone->SetDirectory(nullptr);
+        auto reweightFile = root_ext::OpenRootFile(reweightFileName);
+        TH1D* originalWeights = root_ext::ReadObject<TH1D>(*reweightFile, "weights");
+        std::shared_ptr<TH1D> weights_clone(root_ext::CloneObject(*originalWeights, "PUweights", true));
         return weights_clone;
     }
 

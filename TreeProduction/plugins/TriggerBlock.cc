@@ -1,8 +1,8 @@
 /*!
  * \file TriggerBlock.cc
  * \author Original author: Subir Sarkar
- * \author Contributing author: Konstantin Androsov (Siena University, INFN Pisa)
- * \author Contributing author: Maria Teresa Grippo (Siena University, INFN Pisa)
+ * \author Contributing author: Konstantin Androsov (University of Siena, INFN Pisa)
+ * \author Contributing author: Maria Teresa Grippo (University of Siena, INFN Pisa)
  *
  * Copyright 2011 Subir Sarkar
  * Copyright 2014 Konstantin Androsov <konstantin.androsov@gmail.com>,
@@ -31,7 +31,6 @@
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 #include "TPRegexp.h"
-#define SMART_TREE_FOR_CMSSW
 
 #include "HHbbTauTau/TreeProduction/interface/Trigger.h"
 
@@ -67,8 +66,8 @@ public:
       _verbosity(iConfig.getParameter<int>("verbosity")),
       _l1InputTag(iConfig.getParameter<edm::InputTag>("l1InputTag")),
       _hltInputTag(iConfig.getParameter<edm::InputTag>("hltInputTag")),
-      _hltPathsOfInterest(iConfig.getParameter<std::vector<std::string> > ("hltPathsOfInterest"))
-    {}
+      _hltPathsOfInterest(iConfig.getParameter<std::vector<std::string> > ("hltPathsOfInterest")),
+      triggerTree(&edm::Service<TFileService>()->file(), false) {}
 
 private:
     virtual void beginRun(edm::Run const& iRun, edm::EventSetup const& iSetup);

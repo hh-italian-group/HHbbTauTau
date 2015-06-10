@@ -1,8 +1,8 @@
 /*!
  * \file FlatTreeProducer_tautau.C
  * \brief Generate flat-tree for Htautau analysis using looser selection.
- * \author Konstantin Androsov (Siena University, INFN Pisa)
- * \author Maria Teresa Grippo (Siena University, INFN Pisa)
+ * \author Konstantin Androsov (University of Siena, INFN Pisa)
+ * \author Maria Teresa Grippo (University of Siena, INFN Pisa)
  * \date 2014-07-11 created
  *
  * Copyright 2014 Konstantin Androsov <konstantin.androsov@gmail.com>,
@@ -117,12 +117,11 @@ public:
                             size_t _maxNumberOfEvents = 0,
                             std::shared_ptr<ntuple::FlatTree> _flatTree = std::shared_ptr<ntuple::FlatTree>())
         : BaseFlatTreeProducer(inputFileName, outputFileName, configFileName, _prefix, _maxNumberOfEvents, _flatTree),
-          baseAnaData(*outputFile),
+          baseAnaData(outputFile),
           eventWeights(!config.isMC(), config.IsEmbeddedSample(), config.ApplyPUreweight(), config.ApplyDMweight(),
                        config.PUreweight_fileName(), config.PUreweight_maxAvailablePU(),
                        config.PUreweight_defaultWeight())
     {
-        baseAnaData.getOutputFile().cd();
         if(config.ApplyRecoilCorrection())
             recoilCorrectionProducer_tautau = std::shared_ptr<analysis::RecoilCorrectionProducer>(
                         new analysis::RecoilCorrectionProducer(config.RecoilCorrection_fileCorrectTo_TauTau(),

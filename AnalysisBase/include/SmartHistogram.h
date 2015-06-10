@@ -1,8 +1,8 @@
 /*!
  * \file SmartHistogram.h
  * \brief Definition of class SmartHistogram that allows to create ROOT-compatible histograms.
- * \author Konstantin Androsov (Siena University, INFN Pisa)
- * \author Maria Teresa Grippo (Siena University, INFN Pisa)
+ * \author Konstantin Androsov (University of Siena, INFN Pisa)
+ * \author Maria Teresa Grippo (University of Siena, INFN Pisa)
  * \date 2014-02-20 created
  *
  * Copyright 2014 Konstantin Androsov <konstantin.androsov@gmail.com>,
@@ -38,22 +38,26 @@
 #include <TH2.h>
 #include <TTree.h>
 
+#include "AnalysisBase/include/RootExt.h"
+
 namespace root_ext {
 
 class AbstractHistogram {
 public:
     AbstractHistogram(const std::string& _name)
-        : name(_name) {}
+        : name(_name), outputDirectory(nullptr) {}
 
     virtual ~AbstractHistogram() {}
 
     virtual void WriteRootObject() = 0;
-    virtual void SetOutputDirectory(TDirectory* directory) {}
+    virtual void SetOutputDirectory(TDirectory* directory) { outputDirectory = directory; }
 
+    TDirectory* GetOutputDirectory() const { return outputDirectory; }
     const std::string& Name() const { return name; }
 
 private:
     std::string name;
+    TDirectory* outputDirectory;
 };
 
 namespace detail {
@@ -77,14 +81,16 @@ public:
 
     virtual void WriteRootObject()
     {
+        if(!GetOutputDirectory()) return;
         std::unique_ptr<TTree> rootTree(new TTree(Name().c_str(), Name().c_str()));
+        rootTree->SetDirectory(GetOutputDirectory());
         ValueType branch_value;
         rootTree->Branch("values", &branch_value);
         for(const ValueType& value : data) {
             branch_value = value;
             rootTree->Fill();
         }
-        rootTree->Write("", TObject::kWriteDelete);
+        root_ext::WriteObject(*rootTree);
     }
 
 private:
@@ -116,7 +122,9 @@ public:
 
     virtual void WriteRootObject()
     {
+        if(!GetOutputDirectory()) return;
         std::unique_ptr<TTree> rootTree(new TTree(Name().c_str(), Name().c_str()));
+        rootTree->SetDirectory(GetOutputDirectory());
         NumberType branch_value_x, branch_value_y;
         rootTree->Branch("x", &branch_value_x);
         rootTree->Branch("y", &branch_value_y);
@@ -125,7 +133,7 @@ public:
             branch_value_y = value.y;
             rootTree->Fill();
         }
-        rootTree->Write("", TObject::kWriteDelete);
+        root_ext::WriteObject(*rootTree);
     }
 
 private:
@@ -196,39 +204,46 @@ class SmartHistogram<TH1D> : public TH1D, public AbstractHistogram {
 public:
     SmartHistogram(const std::string& name, size_t nbins, double low, double high)
         : TH1D(name.c_str(), name.c_str(), nbins, low, high), AbstractHistogram(name), store(true), use_log_y(false),
-          max_y_sf(1) {}
+          max_y_sf(1), divide_by_bin_width(false) {}
 
     SmartHistogram(const std::string& name, const std::vector<double>& bins)
         : TH1D(name.c_str(), name.c_str(), static_cast<int>(bins.size()) - 1, bins.data()), AbstractHistogram(name),
-          store(true), use_log_y(false), max_y_sf(1) {}
+          store(true), use_log_y(false), max_y_sf(1), divide_by_bin_width(false) {}
 
     SmartHistogram(const std::string& name, size_t nbins, double low, double high, const std::string& x_axis_title,
-                   const std::string& y_axis_title, bool _use_log_y, double _max_y_sf, bool _store)
+                   const std::string& y_axis_title, bool _use_log_y, double _max_y_sf, bool _divide_by_bin_width,
+                   bool _store)
         : TH1D(name.c_str(), name.c_str(), nbins, low, high), AbstractHistogram(name), store(_store),
-          use_log_y(_use_log_y), max_y_sf(_max_y_sf)
+          use_log_y(_use_log_y), max_y_sf(_max_y_sf), divide_by_bin_width(_divide_by_bin_width)
     {
         SetXTitle(x_axis_title.c_str());
         SetYTitle(y_axis_title.c_str());
     }
 
     SmartHistogram(const std::string& name, const std::vector<double>& bins, const std::string& x_axis_title,
-                   const std::string& y_axis_title, bool _use_log_y, double _max_y_sf, bool _store)
+                   const std::string& y_axis_title, bool _use_log_y, double _max_y_sf, bool _divide_by_bin_width,
+                   bool _store)
         : TH1D(name.c_str(), name.c_str(), static_cast<int>(bins.size()) - 1, bins.data()), AbstractHistogram(name),
-          store(_store), use_log_y(_use_log_y), max_y_sf(_max_y_sf)
+          store(_store), use_log_y(_use_log_y), max_y_sf(_max_y_sf), divide_by_bin_width(_divide_by_bin_width)
     {
         SetXTitle(x_axis_title.c_str());
         SetYTitle(y_axis_title.c_str());
     }
 
+    SmartHistogram(const TH1D& other, bool _use_log_y, double _max_y_sf, bool _divide_by_bin_width)
+        : TH1D(other), AbstractHistogram(other.GetName()), store(false), use_log_y(_use_log_y), max_y_sf(_max_y_sf),
+          divide_by_bin_width(_divide_by_bin_width) {}
+
     virtual void WriteRootObject() override
     {
-        if(store)
-            Write(Name().c_str(), TObject::kOverwrite);
+        if(store && GetOutputDirectory())
+            root_ext::WriteObject(*this);
     }
 
     virtual void SetOutputDirectory(TDirectory* directory) override
     {
         TDirectory* dir = store ? directory : nullptr;
+        AbstractHistogram::SetOutputDirectory(dir);
         SetDirectory(dir);
     }
 
@@ -236,11 +251,30 @@ public:
     double MaxYDrawScaleFactor() const { return max_y_sf; }
     std::string GetXTitle() const { return GetXaxis()->GetTitle(); }
     std::string GetYTitle() const { return GetYaxis()->GetTitle(); }
+    bool NeedToDivideByBinWidth() const { return divide_by_bin_width; }
+    void SetLegendTitle(const std::string _legend_title) { legend_title = _legend_title; }
+    const std::string& GetLegendTitle() const { return legend_title; }
+
+    void CopyContent(const TH1D& other)
+    {
+        if(other.GetNbinsX() != GetNbinsX())
+            throw analysis::exception("Unable to copy histogram content: source and destination")
+                << " have different number of bins.";
+        for(Int_t n = 0; n <= other.GetNbinsX() + 1; ++n) {
+            if(GetBinLowEdge(n) != other.GetBinLowEdge(n) || GetBinWidth(n) != other.GetBinWidth(n))
+                throw analysis::exception("Unable to copy histogram content: bin ")
+                    << n << " is not compatible between the source and destination.";
+            SetBinContent(n, other.GetBinContent(n));
+            SetBinError(n, other.GetBinError(n));
+        }
+    }
 
 private:
     bool store;
     bool use_log_y;
     double max_y_sf;
+    bool divide_by_bin_width;
+    std::string legend_title;
 };
 
 template<>
@@ -264,13 +298,14 @@ public:
 
     virtual void WriteRootObject() override
     {
-        if(store)
-            Write(Name().c_str(), TObject::kOverwrite);
+        if(store && GetOutputDirectory())
+            root_ext::WriteObject(*this);
     }
 
     virtual void SetOutputDirectory(TDirectory* directory) override
     {
         TDirectory* dir = store ? directory : nullptr;
+        AbstractHistogram::SetOutputDirectory(dir);
         SetDirectory(dir);
     }
 

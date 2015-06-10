@@ -1,8 +1,8 @@
 /*!
  * \file Print_SyncPlots.C
  * \brief Print control plots that were selected to synchronize produced tree-toople.
- * \author Konstantin Androsov (Siena University, INFN Pisa)
- * \author Maria Teresa Grippo (Siena University, INFN Pisa)
+ * \author Konstantin Androsov (University of Siena, INFN Pisa)
+ * \author Maria Teresa Grippo (University of Siena, INFN Pisa)
  * \date 2014-04-28 created
  *
  * Copyright 2014 Konstantin Androsov <konstantin.androsov@gmail.com>,
@@ -150,7 +150,8 @@ public:
         drawHistos("weight", 30, .0, 1.2);
 //        drawHistos("weight", 30, .8, 1.1);
 //        drawHistos("embeddedWeight", 50, 0, 1);
-//        drawHistos("signalWeight", 30, 0, 2.0);
+        drawHistos("decayModeWeight_1", 30, 0, 2.0);
+        drawHistos("decayModeWeight_2", 30, 0, 2.0);
 
         //SV Fit variables
         drawHistos("mvis", 20, 0, 200);

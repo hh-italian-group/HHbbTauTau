@@ -1,7 +1,7 @@
 /*!
  * \file RootPrintToPdf.h
  * \brief Print ROOT histograms to PDF.
- * \author Konstantin Androsov (Siena University, INFN Pisa)
+ * \author Konstantin Androsov (University of Siena, INFN Pisa)
  *
  * Copyright 2013, 2014 Konstantin Androsov <konstantin.androsov@gmail.com>
  *
@@ -28,7 +28,6 @@
 
 #include <TROOT.h>
 #include <TStyle.h>
-#include <TFile.h>
 #include <Rtypes.h>
 #include <TError.h>
 #include <TH1.h>
@@ -44,10 +43,38 @@ namespace root_ext {
 
 class PdfPrinter {
 public:
-    PdfPrinter(const std::string& _output_file_name)
-        : canvas(new TCanvas("","",700,700)), output_file_name(_output_file_name)
+    PdfPrinter(const std::string& _output_file_name, bool _verbose = false)
+        : canvas(new TCanvas("","",50, 50, 700, 700)), output_file_name(_output_file_name), n_pages(0),
+          verbose(_verbose)
     {
+//        int W = 700;
+//        int H = 700;
+
+//        int H_ref = 700;
+//        int W_ref = 700;
+
+//        float T = 0.08*H_ref;
+//        float B = 0.12*H_ref;
+//        float L = 0.12*W_ref;
+//        float R = 0.04*W_ref;
+
+        canvas->SetFillColor(0);
+        canvas->SetBorderMode(0);
+        canvas->SetFrameFillStyle(0);
+        canvas->SetFrameLineColor(kWhite);
+        canvas->SetFrameBorderMode(0);
+//        canvas->SetLeftMargin( L/W );
+//        canvas->SetRightMargin( R/W );
+//        canvas->SetTopMargin( T/H );
+//        canvas->SetBottomMargin( B/H );
+//        canvas->SetTickx(0);
+//        canvas->SetTicky(0);
+
+        const Int_t old_gErrorIgnoreLevel = gErrorIgnoreLevel;
+        if(!verbose)
+            gErrorIgnoreLevel = kWarning;
         canvas->Print((output_file_name + "[").c_str());
+        gErrorIgnoreLevel = old_gErrorIgnoreLevel;
     }
 
     template<typename Source>
@@ -76,6 +103,7 @@ public:
         std::ostringstream print_options;
         print_options << "Title:" << page.title;
         canvas->Print(output_file_name.c_str(), print_options.str().c_str());
+        ++n_pages;
     }
 
     void PrintStack(analysis::StackedPlotDescriptor& stackDescriptor)
@@ -93,17 +121,21 @@ public:
         gErrorIgnoreLevel = kWarning;
         canvas->Print(output_file_name.c_str(), print_options.str().c_str());
         gErrorIgnoreLevel = old_gErrorIgnoreLevel;
+        ++n_pages;
     }
 
     ~PdfPrinter()
     {
         const Int_t old_gErrorIgnoreLevel = gErrorIgnoreLevel;
         gErrorIgnoreLevel = kWarning;
-        canvas->Clear();
-        canvas->Print(output_file_name.c_str());
+        if (n_pages > 1){
+            canvas->Clear();
+            canvas->Print(output_file_name.c_str());
+        }
         canvas->Print((output_file_name+"]").c_str());
         gErrorIgnoreLevel = old_gErrorIgnoreLevel;
-        std::cout << "Info in <TCanvas::Print>: pdf file " << output_file_name << " has been closed" << std::endl;
+        if(verbose)
+            std::cout << "Info in <TCanvas::Print>: pdf file " << output_file_name << " has been closed" << std::endl;
     }
 
 private:
@@ -143,6 +175,8 @@ private:
 private:
     std::shared_ptr<TCanvas> canvas;
     std::string output_file_name;
+    size_t n_pages;
+    bool verbose;
 };
 
 } // namespace root_ext

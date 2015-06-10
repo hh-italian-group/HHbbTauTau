@@ -1,8 +1,8 @@
 /*!
  * \file METBlock.cc
  * \author Original author: Subir Sarkar
- * \author Contributing author: Konstantin Androsov (Siena University, INFN Pisa)
- * \author Contributing author: Maria Teresa Grippo (Siena University, INFN Pisa)
+ * \author Contributing author: Konstantin Androsov (University of Siena, INFN Pisa)
+ * \author Contributing author: Maria Teresa Grippo (University of Siena, INFN Pisa)
  *
  * Copyright 2011 Subir Sarkar
  * Copyright 2014 Konstantin Androsov <konstantin.androsov@gmail.com>,
@@ -36,8 +36,6 @@
 #include "DataFormats/PatCandidates/interface/MET.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
-#define SMART_TREE_FOR_CMSSW
-
 #include "HHbbTauTau/TreeProduction/interface/MET.h"
 
 class METBlock : public edm::EDAnalyzer {
@@ -50,9 +48,10 @@ public:
     {
         const edm::ParameterSet& sources = iConfig.getParameterSet("metSrc");
         const auto names = sources.getParameterNames();
+        edm::Service<TFileService> fileService;
         for(const std::string& name : names) {
             const edm::InputTag tag = sources.getParameter<edm::InputTag>(name);
-            const TreeDescriptor descriptor(tag, TreePtr(new ntuple::METTree(name)));
+            const TreeDescriptor descriptor(tag, TreePtr(new ntuple::METTree(name, &fileService->file(), false)));
             descriptors.push_back(descriptor);
         }
     }

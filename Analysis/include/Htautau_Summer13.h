@@ -2,8 +2,8 @@
  * \file Htautau_Summer13.h
  * \brief Higgs in tautau recommended baseline selection cuts for Summer13
  *        see https://twiki.cern.ch/twiki/bin/viewauth/CMS/HiggsToTauTauWorkingSummer2013
- * \author Konstantin Androsov (Siena University, INFN Pisa)
- * \author Maria Teresa Grippo (Siena University, INFN Pisa)
+ * \author Konstantin Androsov (University of Siena, INFN Pisa)
+ * \author Maria Teresa Grippo (University of Siena, INFN Pisa)
  * \date 2014-02-13 created
  *
  * Copyright 2014 Konstantin Androsov <konstantin.androsov@gmail.com>,
@@ -213,7 +213,7 @@ namespace TauTau {
          {"HLT_DoubleMediumIsoPFTau35_Trk5_eta2p1", false},
          {"HLT_DoubleMediumIsoPFTau35_Trk1_eta2p1",false} };
 
-        const std::set<std::string> hltPaths = tools::collect_map_keys(hltPathsMap);
+        const std::set<std::string> hltPaths = analysis::tools::collect_map_keys(hltPathsMap);
 
         const double jet_pt = 50; // > GeV twiki HiggsToTauTauWorkingSummer2013#Tau_Tau_Final_state
         const double jet_eta = 3.0; // < twiki HiggsToTauTauWorkingSummer2013#Tau_Tau_Final_state

@@ -1,9 +1,9 @@
 /*!
  * \file KinFitStudy.C
  * \brief Study of kinematic fit performance.
- * \author Konstantin Androsov (Siena University, INFN Pisa)
- * \author Maria Teresa Grippo (Siena University, INFN Pisa)
- * \author Maria Agnese Ciocci (Siena University, INFN Pisa)
+ * \author Konstantin Androsov (University of Siena, INFN Pisa)
+ * \author Maria Teresa Grippo (University of Siena, INFN Pisa)
+ * \author Maria Agnese Ciocci (University of Siena, INFN Pisa)
  * \date 2014-10-15 created
  *
  * Copyright 2014 Konstantin Androsov <konstantin.androsov@gmail.com>,
@@ -31,7 +31,7 @@
 
 class KinFitStudyData : public root_ext::AnalyzerData {
 public:
-    KinFitStudyData(TFile& outputFile) : AnalyzerData(outputFile) {}
+    KinFitStudyData(std::shared_ptr<TFile> outputFile) : AnalyzerData(outputFile) {}
 
     TH1D_ENTRY(HHKinFit_convergence, 10, -3.5, 6.5)
     TH1D_ENTRY(HHKinFit_M_bbtt, 30, 0, 600)
@@ -48,7 +48,6 @@ public:
          : LightBaseFlatTreeAnalyzer(inputFileName, outputFileName), anaData(GetOutputFile())
     {
         recalc_kinfit = true;
-        anaData.getOutputFile().cd();
     }
 
 protected:

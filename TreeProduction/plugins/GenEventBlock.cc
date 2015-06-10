@@ -1,8 +1,8 @@
 /*!
  * \file GenEventBlock.cc
  * \author Original author: Subir Sarkar
- * \author Contributing author: Konstantin Androsov (Siena University, INFN Pisa)
- * \author Contributing author: Maria Teresa Grippo (Siena University, INFN Pisa)
+ * \author Contributing author: Konstantin Androsov (University of Siena, INFN Pisa)
+ * \author Contributing author: Maria Teresa Grippo (University of Siena, INFN Pisa)
  *
  * Copyright 2011 Subir Sarkar
  * Copyright 2014 Konstantin Androsov <konstantin.androsov@gmail.com>,
@@ -39,14 +39,14 @@
 #include "SimDataFormats/GeneratorProducts/interface/GenFilterInfo.h"
 #include "SimDataFormats/GeneratorProducts/interface/LHEEventProduct.h"
 
-#define SMART_TREE_FOR_CMSSW
 #include "HHbbTauTau/TreeProduction/interface/GenEvent.h"
 
 class GenEventBlock : public edm::EDAnalyzer {
 public:
     explicit GenEventBlock(const edm::ParameterSet& iConfig) :
         _genEventSrc(iConfig.getParameter<edm::InputTag>("genEventSrc")),
-        _lheProductSrc(iConfig.getParameter<edm::InputTag>("lheProductSrc")) {}
+        _lheProductSrc(iConfig.getParameter<edm::InputTag>("lheProductSrc")),
+        genEventTree(&edm::Service<TFileService>()->file(), false) {}
 
 private:
     virtual void endJob() { genEventTree.Write(); }

@@ -1,8 +1,8 @@
 /*!
  * \file Print_SmartHistogram.C
  * \brief Print smart histograms with specified name superimposing several files.
- * \author Konstantin Androsov (Siena University, INFN Pisa)
- * \author Maria Teresa Grippo (Siena University, INFN Pisa)
+ * \author Konstantin Androsov (University of Siena, INFN Pisa)
+ * \author Maria Teresa Grippo (University of Siena, INFN Pisa)
  * \date 2014-04-03 created
  *
  * Copyright 2014 Konstantin Androsov <konstantin.androsov@gmail.com>,
@@ -26,6 +26,7 @@
 
 #include <TTree.h>
 
+#include "AnalysisBase/include/RootExt.h"
 #include "../include/RootPrintToPdf.h"
 
 class MyHistogramSource : public root_ext::HistogramSource<TH1D, Double_t, TTree> {
@@ -64,12 +65,7 @@ public:
     {
         Initialize(args...);
         for(const FileTagPair& fileTag : inputs) {
-            TFile* file = new TFile(fileTag.first.c_str());
-            if(file->IsZombie()) {
-                std::ostringstream ss;
-                ss << "Input file '" << fileTag.first << "' not found.";
-                throw std::runtime_error(ss.str());
-            }
+            auto file = root_ext::OpenRootFile(fileTag.first);
             source.Add(fileTag.second, file);
         }
     }

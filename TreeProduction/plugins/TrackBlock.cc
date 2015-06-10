@@ -1,8 +1,8 @@
 /*!
  * \file TrackBlock.cc
  * \author Original author: Subir Sarkar
- * \author Contributing author: Konstantin Androsov (Siena University, INFN Pisa)
- * \author Contributing author: Maria Teresa Grippo (Siena University, INFN Pisa)
+ * \author Contributing author: Konstantin Androsov (University of Siena, INFN Pisa)
+ * \author Contributing author: Maria Teresa Grippo (University of Siena, INFN Pisa)
  *
  * Copyright 2011 Subir Sarkar
  * Copyright 2014 Konstantin Androsov <konstantin.androsov@gmail.com>,
@@ -40,7 +40,6 @@
 #include "DataFormats/BeamSpot/interface/BeamSpot.h"
 #include "Math/GenVector/VectorUtil.h"
 
-#define SMART_TREE_FOR_CMSSW
 #include "HHbbTauTau/TreeProduction/interface/Track.h"
 
 class TrackBlock : public edm::EDAnalyzer {
@@ -48,7 +47,8 @@ public:
     explicit TrackBlock(const edm::ParameterSet& iConfig) :
         _verbosity(iConfig.getParameter<int>("verbosity")),
         _inputTag(iConfig.getParameter<edm::InputTag>("trackSrc")),
-        _beamSpot(iConfig.getParameter<edm::InputTag>("offlineBeamSpot")) {}
+        _beamSpot(iConfig.getParameter<edm::InputTag>("offlineBeamSpot")),
+        trackTree(&edm::Service<TFileService>()->file(), false) {}
 
 private:
     virtual void endJob() { trackTree.Write(); }

@@ -2,8 +2,8 @@
 #
 #  \file runx.sh
 #  \brief Compile and run C++ file with a specified name, passing to it command line arguments.
-#  \author Konstantin Androsov (Siena University, INFN Pisa)
-#  \author Maria Teresa Grippo (Siena University, INFN Pisa)
+#  \author Konstantin Androsov (University of Siena, INFN Pisa)
+#  \author Maria Teresa Grippo (University of Siena, INFN Pisa)
 #
 #  Copyright 2014 Konstantin Androsov <konstantin.androsov@gmail.com>,
 #                 Maria Teresa Grippo <grippomariateresa@gmail.com>
@@ -39,7 +39,7 @@ LC_CTYPE=C SUFFIX=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 
 JOB_NAME=${NAME}_${SUFFIX}
 EXE_NAME="$SCRIPT_RUN_PATH/$JOB_NAME"
 
-$SCRIPT_PATH/RunTools/make.sh $SCRIPT_RUN_PATH $JOB_NAME -O3 $*
+$SCRIPT_PATH/RunTools/make.sh $SCRIPT_RUN_PATH $JOB_NAME -O3 "$@"
 
 RESULT=$?
 if [[ $RESULT -eq 0 ]] ; then

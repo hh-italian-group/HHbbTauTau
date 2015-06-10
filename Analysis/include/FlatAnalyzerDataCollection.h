@@ -1,8 +1,8 @@
 /*!
  * \file FlatAnalyzerDataCollection.h
  * \brief Collection of histogram containers for flat tree analyzers.
- * \author Konstantin Androsov (Siena University, INFN Pisa)
- * \author Maria Teresa Grippo (Siena University, INFN Pisa)
+ * \author Konstantin Androsov (University of Siena, INFN Pisa)
+ * \author Maria Teresa Grippo (University of Siena, INFN Pisa)
  * \date 2015-02-07 created
  *
  * Copyright 2015 Konstantin Androsov <konstantin.androsov@gmail.com>,
@@ -72,8 +72,13 @@ struct FlatAnalyzerDataId {
            << eventEnergyScale << separator << dataCategoryName;
         return ss.str();
     }
-
 };
+
+std::ostream& operator<< (std::ostream& s, const FlatAnalyzerDataId& id)
+{
+    s << id.GetName();
+    return s;
+}
 
 template<typename ...Types>
 struct FlatAnalyzerDataMetaId;
@@ -97,6 +102,17 @@ struct FlatAnalyzerDataMetaId<EventCategory, EventRegion, EventEnergyScale, std:
     FlatAnalyzerDataId MakeId(EventSubCategory eventSubCategory) const
     {
         return FlatAnalyzerDataId(eventCategory, eventSubCategory, eventRegion, eventEnergyScale, dataCategoryName);
+    }
+
+    bool operator<(const FlatAnalyzerDataMetaId<EventCategory, EventRegion, EventEnergyScale, std::string>& other) const
+    {
+        if(eventCategory < other.eventCategory) return true;
+        if(eventCategory > other.eventCategory) return false;
+        if(eventRegion < other.eventRegion) return true;
+        if(eventRegion > other.eventRegion) return false;
+        if(eventEnergyScale < other.eventEnergyScale) return true;
+        if(eventEnergyScale > other.eventEnergyScale) return false;
+        return dataCategoryName < other.dataCategoryName;
     }
 
     std::string GetName() const
@@ -134,6 +150,15 @@ struct FlatAnalyzerDataMetaId<EventCategory, EventRegion, std::string> {
         return FlatAnalyzerDataMetaId_noSub(eventCategory, eventRegion, eventEnergyScale, dataCategoryName);
     }
 
+    bool operator< (const FlatAnalyzerDataMetaId<EventCategory, EventRegion, std::string>& other) const
+    {
+        if(eventCategory < other.eventCategory) return true;
+        if(eventCategory > other.eventCategory) return false;
+        if(eventRegion < other.eventRegion) return true;
+        if(eventRegion > other.eventRegion) return false;
+        return dataCategoryName < other.dataCategoryName;
+    }
+
     std::string GetName() const
     {
         static const std::string separator = "/";
@@ -166,6 +191,18 @@ struct FlatAnalyzerDataMetaId<EventCategory, EventSubCategory, EventRegion, Even
     FlatAnalyzerDataId MakeId(const std::string& dataCategoryName) const
     {
         return FlatAnalyzerDataId(eventCategory, eventSubCategory, eventRegion, eventEnergyScale, dataCategoryName);
+    }
+
+    bool operator< (const FlatAnalyzerDataMetaId<EventCategory, EventSubCategory, EventRegion,
+                                                 EventEnergyScale>& other) const
+    {
+        if(eventCategory < other.eventCategory) return true;
+        if(eventCategory > other.eventCategory) return false;
+        if(eventSubCategory < other.eventSubCategory) return true;
+        if(eventSubCategory > other.eventSubCategory) return false;
+        if(eventRegion < other.eventRegion) return true;
+        if(eventRegion > other.eventRegion) return false;
+        return eventEnergyScale < other.eventEnergyScale;
     }
 
     std::string GetName() const
@@ -205,6 +242,15 @@ struct FlatAnalyzerDataMetaId<EventCategory, EventSubCategory, EventEnergyScale>
         return FlatAnalyzerDataMetaId_noName(eventCategory, eventSubCategory, eventRegion, eventEnergyScale);
     }
 
+    bool operator< (const FlatAnalyzerDataMetaId<EventCategory, EventSubCategory, EventEnergyScale>& other) const
+    {
+        if(eventCategory < other.eventCategory) return true;
+        if(eventCategory > other.eventCategory) return false;
+        if(eventSubCategory < other.eventSubCategory) return true;
+        if(eventSubCategory > other.eventSubCategory) return false;
+        return eventEnergyScale < other.eventEnergyScale;
+    }
+
     std::string GetName() const
     {
         static const std::string separator = "/";
@@ -234,7 +280,11 @@ public:
     FlatAnalyzerDataCollection(const std::string& outputFileName, bool store)
     {
         if(store)
-            outputFile = std::shared_ptr<TFile>(root_ext::AnalyzerData::CreateFile(outputFileName));
+            outputFile = root_ext::CreateRootFile(outputFileName);
+
+        TH1::SetDefaultSumw2();
+        TH1::AddDirectory(kFALSE);
+        TH2::AddDirectory(kFALSE);
     }
 
     FlatAnalyzerData& Get(const FlatAnalyzerDataId& id, Channel channel)
@@ -309,7 +359,7 @@ private:
             if(id.eventCategory == analysis::EventCategory::TwoJets_TwoBtag
                     || id.eventCategory == analysis::EventCategory::TwoJets_TwoLooseBtag)
                 return Make<FlatAnalyzerData_tautau_2tag>(id);
-            return Make<FlatAnalyzerData_tautau>(id);
+            return Make<FlatAnalyzerData_tautau_other_tag>(id);
         }
 
         throw exception("Can't make analyzer data for ") << channel << " channel.";
@@ -321,7 +371,7 @@ private:
         const bool fill_all = id.eventEnergyScale == EventEnergyScale::Central;
         if(outputFile) {
             const std::string dir_name = id.GetName();
-            return FlatAnalyzerDataPtr(new AnaData(*outputFile, dir_name, fill_all));
+            return FlatAnalyzerDataPtr(new AnaData(outputFile, dir_name, fill_all));
         }
         return FlatAnalyzerDataPtr(new AnaData(fill_all));
     }
@@ -329,6 +379,40 @@ private:
 private:
     std::shared_ptr<TFile> outputFile;
     FlatAnalyzerDataMap anaDataMap;
+};
+
+class FlatAnalyzerDataCollectionReader {
+public:
+
+    typedef std::map<std::string, const root_ext::AbstractHistogram*> HistogramMap;
+
+    FlatAnalyzerDataCollectionReader(const std::string& file_name)
+        : file(root_ext::OpenRootFile(file_name)), anaDataCollection("", false) {}
+
+    template<typename Histogram>
+    const root_ext::SmartHistogram<Histogram>* GetHistogram(const FlatAnalyzerDataId& id, Channel channel,
+                                                      const std::string& name)
+    {
+        const std::string full_name = id.GetName() + "/" + name;
+        if(!histograms.count(full_name)) {
+            Histogram* original_histogram = root_ext::TryReadObject<Histogram>(*file, full_name);
+            if(!original_histogram)
+            histograms[full_name] = nullptr;
+            FlatAnalyzerData& anaData = anaDataCollection.Get(id, channel);
+            anaData.CreateAll();
+            root_ext::SmartHistogram<Histogram>* smart_hist = anaData.GetPtr<Histogram>(name);
+            if(!smart_hist)
+                throw exception("Histogram '") << name << "' not found.";
+            smart_hist->CopyContent(*original_histogram);
+            histograms[full_name] = smart_hist;
+        }
+        return dynamic_cast< const root_ext::SmartHistogram<Histogram>* >(histograms.at(full_name));
+    }
+
+private:
+    std::shared_ptr<TFile> file;
+    FlatAnalyzerDataCollection anaDataCollection;
+    HistogramMap histograms;
 };
 
 } // namespace analysis

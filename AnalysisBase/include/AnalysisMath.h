@@ -1,8 +1,8 @@
 /*!
  * \file AnalysisMath.h
  * \brief Common math functions and definitions suitable for analysis purposes.
- * \author Konstantin Androsov (Siena University, INFN Pisa)
- * \author Maria Teresa Grippo (Siena University, INFN Pisa)
+ * \author Konstantin Androsov (University of Siena, INFN Pisa)
+ * \author Maria Teresa Grippo (University of Siena, INFN Pisa)
  * \date 2014-09-08 created
  *
  * Copyright 2014 Konstantin Androsov <konstantin.androsov@gmail.com>,
@@ -81,9 +81,9 @@ inline PhysicalValue Integral(const TH1D& histogram, bool include_overflows = tr
     return PhysicalValue(integral, error);
 }
 
-inline void RenormalizeHistogram(TH1D& histogram, const PhysicalValue norm, bool include_overflows = true)
+inline void RenormalizeHistogram(TH1D& histogram, const PhysicalValue& norm, bool include_overflows = true)
 {
-    histogram.Scale(norm.value/Integral(histogram,include_overflows).value);
+    histogram.Scale(norm.GetValue() / Integral(histogram,include_overflows).GetValue());
 }
 
 } // namespace analysis

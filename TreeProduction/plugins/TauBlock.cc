@@ -1,8 +1,8 @@
 /*!
  * \file TauBlock.cc
  * \author Original author: Subir Sarkar
- * \author Contributing author: Konstantin Androsov (Siena University, INFN Pisa)
- * \author Contributing author: Maria Teresa Grippo (Siena University, INFN Pisa)
+ * \author Contributing author: Konstantin Androsov (University of Siena, INFN Pisa)
+ * \author Contributing author: Maria Teresa Grippo (University of Siena, INFN Pisa)
  *
  * Copyright 2011 Subir Sarkar
  * Copyright 2014 Konstantin Androsov <konstantin.androsov@gmail.com>,
@@ -54,7 +54,6 @@
 #include "TrackingTools/Records/interface/TransientTrackRecord.h"
 #include "RecoVertex/VertexPrimitives/interface/TransientVertex.h"
 
-#define SMART_TREE_FOR_CMSSW
 #include "HHbbTauTau/TreeProduction/interface/Tau.h"
 #include "HHbbTauTau/TreeProduction/interface/TriggerTools.h"
 
@@ -63,7 +62,8 @@
 class TauBlock : public edm::EDAnalyzer {
 public:
     explicit TauBlock(const edm::ParameterSet& iConfig) :
-        _inputTag(iConfig.getParameter<edm::InputTag>("patTauSrc")) {}
+        _inputTag(iConfig.getParameter<edm::InputTag>("patTauSrc")),
+        tauTree(&edm::Service<TFileService>()->file(), false) {}
 
 private:
     virtual void endJob() { tauTree.Write(); }

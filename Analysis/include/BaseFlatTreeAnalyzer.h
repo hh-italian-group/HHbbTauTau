@@ -1,8 +1,8 @@
 /*!
  * \file BaseFlatTreeAnalyzer.h
  * \brief Definition of BaseFlatTreeAnalyzer class, the base class for flat tree analyzers.
- * \author Konstantin Androsov (Siena University, INFN Pisa)
- * \author Maria Teresa Grippo (Siena University, INFN Pisa)
+ * \author Konstantin Androsov (University of Siena, INFN Pisa)
+ * \author Maria Teresa Grippo (University of Siena, INFN Pisa)
  * \date 2014-09-03 created
  *
  * Copyright 2014 Konstantin Androsov <konstantin.androsov@gmail.com>,
@@ -52,6 +52,7 @@
 #include "Htautau_Summer13.h"
 #include "AnalysisCategories.h"
 #include "FlatAnalyzerDataCollection.h"
+#include "PostfitConfiguration.h"
 
 namespace analysis {
 
@@ -73,13 +74,21 @@ public:
     const DataCategoryTypeSet& DataCategoryTypeToProcessForQCD() const { return dataCategoryTypeForQCD; }
 
     BaseFlatTreeAnalyzer(const DataCategoryCollection& _dataCategoryCollection, const std::string& _inputPath,
-                         const std::string& _outputFileName, bool _applyPostFitCorrections = false)
+                         const std::string& _outputFileName, bool _applyPostFitCorrections, bool saveFullOutput)
         : inputPath(_inputPath), outputFileName(_outputFileName), dataCategoryCollection(_dataCategoryCollection),
-          anaDataCollection(outputFileName + "_full.root", true),
+          anaDataCollection(outputFileName + "_full.root", saveFullOutput),
           applyPostFitCorrections(_applyPostFitCorrections)
     {
         TH1::SetDefaultSumw2();
         gROOT->SetMustClean(kFALSE);
+        if(applyPostFitCorrections) {
+            ConfigReader configReader("Analysis/config/postfit_sf.cfg");
+            postfitCorrectionsCollection =
+                    std::shared_ptr<PostfitCorrectionsCollection>(new PostfitCorrectionsCollection());
+            PostfitCorrectionsCollectionReader correctionsReader(*postfitCorrectionsCollection);
+            configReader.AddEntryReader("CORRECTIONS", correctionsReader);
+            configReader.ReadConfig();
+        }
     }
 
     void Run()
@@ -90,23 +99,21 @@ public:
             std::cout << *dataCategory << std::endl;
             for(const auto& source_entry : dataCategory->sources_sf) {
                 const std::string fullFileName = inputPath + "/" + source_entry.first;
-                std::shared_ptr<TFile> file(new TFile(fullFileName.c_str(), "READ"));
-                if(file->IsZombie())
-                    throw exception("Input file '") << source_entry.first << "' not found.";
-                std::shared_ptr<ntuple::FlatTree> tree(new ntuple::FlatTree(*file, "flatTree"));
+                auto file = root_ext::OpenRootFile(fullFileName);
+                std::shared_ptr<ntuple::FlatTree> tree(new ntuple::FlatTree("flatTree", file.get(), true));
                 ProcessDataSource(*dataCategory, tree, source_entry.second);
             }
         }
 
         static const std::set< std::pair<std::string, EventSubCategory> > interesting_histograms = {
-            { FlatAnalyzerData::m_sv_Name(), EventSubCategory::NoCuts },
-            { FlatAnalyzerData::m_sv_Name(), EventSubCategory::MassWindow },
+            { FlatAnalyzerData_semileptonic::m_sv_Name(), EventSubCategory::NoCuts },
+            { FlatAnalyzerData_semileptonic::m_sv_Name(), EventSubCategory::MassWindow },
             { FlatAnalyzerData::m_ttbb_kinfit_Name(), EventSubCategory::KinematicFitConverged },
             { FlatAnalyzerData::m_ttbb_kinfit_Name(), EventSubCategory::KinematicFitConvergedWithMassWindow },
         };
 
         static const std::set<std::string> complete_histogram_names = {
-            FlatAnalyzerData::m_sv_Name(), FlatAnalyzerData::m_ttbb_kinfit_Name()
+            FlatAnalyzerData_semileptonic::m_sv_Name(), FlatAnalyzerData::m_ttbb_kinfit_Name()
         };
 
         for (const auto& hist_name : FlatAnalyzerData::GetOriginalHistogramNames<TH1D>()) {
@@ -171,14 +178,16 @@ public:
         PrintTables("semicolon", L";");
 
         std::cout << "Saving datacards... " << std::endl;
-        ProduceFileForLimitsCalculation(FlatAnalyzerData::m_sv_Name(), EventSubCategory::NoCuts,
-                                        &FlatAnalyzerData::m_sv);
+        ProduceFileForLimitsCalculation(FlatAnalyzerData_semileptonic::m_sv_Name(), EventSubCategory::NoCuts,
+                                        &FlatAnalyzerData::m_sv_base);
+        ProduceFileForLimitsCalculation(FlatAnalyzerData::m_ttbb_kinfit_Name(),
+                                        EventSubCategory::KinematicFitConverged,
+                                        &FlatAnalyzerData::m_ttbb_kinfit);
         ProduceFileForLimitsCalculation(FlatAnalyzerData::m_ttbb_kinfit_Name(),
                                         EventSubCategory::KinematicFitConvergedWithMassWindow,
                                         &FlatAnalyzerData::m_ttbb_kinfit);
 
         std::cout << "Printing stacked plots... " << std::endl;
-        PrintStackedPlots(EventRegion::OS_Isolated, true, true);
         PrintStackedPlots(EventRegion::OS_Isolated, false, true);
 
         std::cout << "Saving output file..." << std::endl;
@@ -276,15 +285,16 @@ protected:
 
             static const EventCategorySet categoriesToRelax = {
                 EventCategory::TwoJets_OneBtag, EventCategory::TwoJets_TwoBtag, EventCategory::TwoJets_AtLeastOneBtag };
-            const EventCategory shapeEventCategory = categoriesToRelax.count(anaDataMetaId.eventCategory)
-                    ? MediumToLoose_EventCategoryMap.at(anaDataMetaId.eventCategory) : anaDataMetaId.eventCategory;
-            const FlatAnalyzerDataMetaId_noRegion_noName anaDataMetaId_shape(shapeEventCategory,
-                                                                             anaDataMetaId.eventSubCategory,
-                                                                             anaDataMetaId.eventEnergyScale);
 
             for(const auto& yield_iter : valueMap) {
                 const EventRegion eventRegion = yield_iter.first;
                 const PhysicalValue& yield = yield_iter.second;
+                const EventCategory shapeEventCategory = (categoriesToRelax.count(anaDataMetaId.eventCategory) &&
+                        eventRegion == analysis::EventRegion::OS_Isolated)
+                        ? MediumToLoose_EventCategoryMap.at(anaDataMetaId.eventCategory) : anaDataMetaId.eventCategory;
+                const FlatAnalyzerDataMetaId_noRegion_noName anaDataMetaId_shape(shapeEventCategory,
+                                                                                 anaDataMetaId.eventSubCategory,
+                                                                                 anaDataMetaId.eventEnergyScale);
                 auto z_hist_shape = GetHistogram(anaDataMetaId_shape, eventRegion, originalZcategory.name, hist_name);
                 if (z_hist_shape){
                     TH1D& z_hist = CloneHistogram(anaDataMetaId, eventRegion, newZcategory.name, *z_hist_shape);
@@ -312,7 +322,7 @@ protected:
         const auto data_yield = Integral(*hist_data, true);
         const PhysicalValue yield = data_yield - bkg_yield;
         s_out << "Data yield = " << data_yield << "\nData-MC yield = " << yield << std::endl;
-        if(yield.value < 0) {
+        if(yield.GetValue() < 0) {
             std::cout << bkg_yield_debug << "\nData yield = " << data_yield << std::endl;
             throw exception("Negative QCD yield for histogram '") << hist_name << "' in " << anaDataMetaId.eventCategory
                                                                   << " " << eventRegion << ".";
@@ -403,11 +413,31 @@ protected:
         return CloneHistogram(anaDataMetaId, EventRegion::OS_Isolated, dataCategoryName, originalHistogram);
     }
 
+    static FlatEventInfo::BjetPair SelectBjetPair(const ntuple::Flat& event, bool apply_cuts_on_bjets)
+    {
+        if(!apply_cuts_on_bjets)
+            return FlatEventInfo::BjetPair(0, 1);
+        std::vector<size_t> selected_jet_ids;
+        for(size_t n = 0; n < event.csv_Bjets.size(); ++n) {
+            if(event.pt_Bjets.at(n) > 30)
+                selected_jet_ids.push_back(n);
+        }
+
+        FlatEventInfo::BjetPair selected_pair(event.csv_Bjets.size(), event.csv_Bjets.size() + 1);
+        if(selected_jet_ids.size() > 0)
+            selected_pair.first = selected_jet_ids.at(0);
+        if(selected_jet_ids.size() > 1)
+            selected_pair.second = selected_jet_ids.at(1);
+        return selected_pair;
+    }
+
     void ProcessDataSource(const DataCategory& dataCategory, std::shared_ptr<ntuple::FlatTree> tree,
                            double scale_factor)
     {
 
         static const bool applyMVAcut = false;
+        static const bool apply_cuts_on_bjets = false;
+        static const bool recalculate_kinFit = false;
 
         const DataCategory& DYJets_incl = dataCategoryCollection.GetUniqueCategory(DataCategoryType::DYJets_incl);
         const DataCategory& DYJets_excl = dataCategoryCollection.GetUniqueCategory(DataCategoryType::DYJets_excl);
@@ -416,9 +446,11 @@ protected:
         for(Long64_t current_entry = 0; current_entry < tree->GetEntries(); ++current_entry) {
             tree->GetEntry(current_entry);
             const ntuple::Flat& event = tree->data;
+            const FlatEventInfo::BjetPair selected_bjet_pair = SelectBjetPair(event, apply_cuts_on_bjets);
             const bool useRetag = dataCategory.IsData() || dataCategory.name == DY_Embedded.name  ? false : true;
             const EventCategoryVector eventCategories = DetermineEventCategories(event.csv_Bjets,
-                                                                                 event.nBjets_retagged,
+                                                                                 selected_bjet_pair,
+                                                                                 event.nBjets_retagged,                                                                                 
                                                                                  cuts::Htautau_Summer13::btag::CSVL,
                                                                                  cuts::Htautau_Summer13::btag::CSVM,
                                                                                  useRetag);
@@ -440,8 +472,8 @@ protected:
                 if(eventRegion == EventRegion::Unknown) continue;
 
                 if(!eventInfo)
-                    eventInfo = std::shared_ptr<FlatEventInfo>(new FlatEventInfo(event, FlatEventInfo::BjetPair(0, 1),
-                                                                                 false));
+                    eventInfo = std::shared_ptr<FlatEventInfo>(new FlatEventInfo(event, selected_bjet_pair,
+                                                                                 recalculate_kinFit));
 
                 UpdateMvaInfo(*eventInfo, eventCategory, false, false, false);
                 if(applyMVAcut && !PassMvaCut(*eventInfo, eventCategory)) continue;
@@ -528,7 +560,10 @@ protected:
                     if(subCategory != EventSubCategory::NoCuts)
                         ss_title << " " << subCategory;
                     ss_title << ": " << hist_name;
-                    StackedPlotDescriptor stackDescriptor(ss_title.str(), false, ChannelNameLatex(), drawRatio);
+
+                    StackedPlotDescriptor stackDescriptor(ss_title.str(), false, ChannelNameLatex(),
+                                                          detail::eventCategoryNamesMap.at(eventCategory), drawRatio,
+                                                          applyPostFitCorrections);
 
                     for(const DataCategory* category : dataCategoryCollection.GetAllCategories()) {
                         if(!category->draw) continue;
@@ -536,7 +571,8 @@ protected:
                         const auto histogram = GetHistogram(anaDataMetaId, eventRegion, category->name, hist_name);
                         if(!histogram) continue;
 
-                        if(category->IsSignal())
+                        if(category->IsSignal() && eventCategory == EventCategory::TwoJets_Inclusive) continue;
+                        else if(category->IsSignal())
                             stackDescriptor.AddSignalHistogram(*histogram, category->title, category->color,
                                                                category->draw_sf);
                         else if(category->IsBackground())
@@ -604,14 +640,13 @@ protected:
         s_file_name << ".root";
         const std::string file_name = s_file_name.str();
 
-        std::shared_ptr<TFile> outputFile(new TFile(file_name.c_str(), "RECREATE"));
-        outputFile->cd();
+        auto outputFile = root_ext::CreateRootFile(file_name);
         for(EventCategory eventCategory : EventCategoriesToProcess()) {
             if(!categoryToDirectoryNameSuffix.count(eventCategory)) continue;
             const std::string directoryName = channelNameForFolder.at(ChannelName()) + "_"
                     + categoryToDirectoryNameSuffix.at(eventCategory);
             outputFile->mkdir(directoryName.c_str());
-            outputFile->cd(directoryName.c_str());
+            TDirectory* directory = outputFile->GetDirectory(directoryName.c_str());
             for(const DataCategory* dataCategory : dataCategoryCollection.GetCategories(DataCategoryType::Limits)) {
                 if(!dataCategory->datacard.size())
                     throw exception("Empty datacard name for data category '") << dataCategory->name << "'.";
@@ -620,7 +655,7 @@ protected:
                                                                          eventEnergyScale);
                     std::shared_ptr<TH1D> hist;
                     if(auto hist_orig = GetSignalHistogram(meta_id, dataCategory->name, hist_name))
-                        hist = std::shared_ptr<TH1D>(static_cast<TH1D*>(hist_orig->Clone()));
+                        hist = std::shared_ptr<TH1D>(new TH1D(*hist_orig));
                     else {
                         std::cout << "Warning - Datacard histogram '" << hist_name
                                   << "' not found for data category '" << dataCategory->name << "' in '"
@@ -630,14 +665,14 @@ protected:
                         FlatAnalyzerData& anaData = GetAnaData(meta_id.MakeId(EventRegion::OS_Isolated,
                                                                               dataCategory->name));
                         auto& new_hist = (anaData.*histogramAccessor)();
-                        hist = std::shared_ptr<TH1D>(static_cast<TH1D*>(new_hist.Clone()));
+                        hist = std::shared_ptr<TH1D>(new TH1D(new_hist));
                         const Int_t central_bin = hist->GetNbinsX() / 2;
                         hist->SetBinContent(central_bin, tiny_value);
                         hist->SetBinError(central_bin, tiny_value_error);
                     }
                     const std::string full_datacard_name = FullDataCardName(dataCategory->datacard, eventEnergyScale);
                     hist->Scale(dataCategory->limits_sf);
-                    hist->Write(full_datacard_name.c_str());
+                    root_ext::WriteObject(*hist, directory, full_datacard_name);
 
                     if(eventEnergyScale == EventEnergyScale::Central && dataCategory->datacard == "ZL") {
                         std::string channel_name = ChannelName();
@@ -646,12 +681,12 @@ protected:
                                 + dataCategory->datacard + "Scale_" + channel_name + "_8TeV";
                         const std::string name_syst_up = name_syst_prefix + "Up";
                         const std::string name_syst_down = name_syst_prefix + "Down";
-                        std::shared_ptr<TH1D> hist_syst_up(static_cast<TH1D*>(hist->Clone()));
+                        std::shared_ptr<TH1D> hist_syst_up(new TH1D(*hist));
                         hist_syst_up->Scale(1.02);
-                        hist_syst_up->Write(name_syst_up.c_str());
-                        std::shared_ptr<TH1D> hist_syst_down(static_cast<TH1D*>(hist->Clone()));
+                        root_ext::WriteObject(*hist_syst_up, directory, name_syst_up);
+                        std::shared_ptr<TH1D> hist_syst_down(new TH1D(*hist));
                         hist_syst_down->Scale(0.98);
-                        hist_syst_down->Write(name_syst_down.c_str());
+                        root_ext::WriteObject(*hist_syst_down, directory, name_syst_down);
                     }
                     //added shape systematics for QCD
                     if(eventEnergyScale == EventEnergyScale::Central && dataCategory->datacard == "QCD_alternative") {
@@ -661,15 +696,14 @@ protected:
                                 + "Shape_" + channel_name + "_8TeV";
                         const std::string name_syst_up = name_syst_prefix + "Up";
                         const std::string name_syst_down = name_syst_prefix + "Down";
-                        std::shared_ptr<TH1D> hist_syst_up(static_cast<TH1D*>(hist->Clone()));
-                        hist_syst_up->Write(name_syst_up.c_str());
-                        std::shared_ptr<TH1D> hist_syst_down(static_cast<TH1D*>(hist->Clone()));
-                        hist_syst_down->Write(name_syst_down.c_str());
+                        std::shared_ptr<TH1D> hist_syst_up(new TH1D(*hist));
+                        root_ext::WriteObject(*hist_syst_up, directory, name_syst_up);
+                        std::shared_ptr<TH1D> hist_syst_down(new TH1D(*hist));
+                        root_ext::WriteObject(*hist_syst_down, directory, name_syst_down);
                     }
                 }
             }
         }
-        outputFile->Close();
     }
 
     void SubtractBackgroundHistograms(const FlatAnalyzerDataMetaId_noRegion_noName& anaDataMetaId,
@@ -697,9 +731,9 @@ protected:
         }
 
         const PhysicalValue original_Integral = Integral(histogram, true);
-        ss_debug << "Integral after bkg subtraction: " << original_Integral.value << ".\n";
+        ss_debug << "Integral after bkg subtraction: " << original_Integral << ".\n";
         debug_info = ss_debug.str();
-        if (original_Integral.value < 0) {
+        if (original_Integral.GetValue() < 0) {
             std::cout << debug_info << std::endl;
             throw exception("Integral after bkg subtraction is negative for histogram '")
                 << histogram.GetName() << "' in event category " << anaDataMetaId.eventCategory
@@ -721,9 +755,7 @@ protected:
             histogram.SetBinContent(n, correction_factor);
             histogram.SetBinError(n, new_error);
         }
-        const PhysicalValue new_Integral = Integral(histogram, true);
-        const PhysicalValue correctionSF = original_Integral/new_Integral;
-        histogram.Scale(correctionSF.value);
+        RenormalizeHistogram(histogram, original_Integral, true);
         negative_bins_info = ss_negative.str();
     }
 
@@ -816,7 +848,7 @@ private:
         };
 
         static const std::map<std::string, size_t> histogramsToBlind = {
-            { FlatAnalyzerData::m_sv_Name(), 1 }, { FlatAnalyzerData::m_vis_Name(), 1 },
+            { FlatAnalyzerData_semileptonic::m_sv_Name(), 1 }, { FlatAnalyzerData::m_vis_Name(), 1 },
             { FlatAnalyzerData::m_bb_Name(), 1 }, { FlatAnalyzerData::m_ttbb_Name(), 2 },
             { FlatAnalyzerData::m_ttbb_kinfit_Name(), 2 }, { FlatAnalyzerData::m_bb_slice_Name(), 3 }
         };
@@ -842,8 +874,8 @@ private:
         std::wofstream of(outputFileName + "_" + name_suffix + ".csv");
 
         static const std::set< std::pair<std::string, EventSubCategory> > interesting_histograms = {
-            { FlatAnalyzerData::m_sv_Name(), EventSubCategory::NoCuts },
-            { FlatAnalyzerData::m_sv_Name(), EventSubCategory::MassWindow },
+            { FlatAnalyzerData_semileptonic::m_sv_Name(), EventSubCategory::NoCuts },
+            { FlatAnalyzerData_semileptonic::m_sv_Name(), EventSubCategory::MassWindow },
             { FlatAnalyzerData::m_ttbb_kinfit_Name(), EventSubCategory::KinematicFitConverged },
             { FlatAnalyzerData::m_ttbb_kinfit_Name(), EventSubCategory::KinematicFitConvergedWithMassWindow }
         };
@@ -881,7 +913,7 @@ private:
 
                 if( TH1D* histogram = GetSignalHistogram(meta_id, dataCategory->name, hist_name) ) {
                     const PhysicalValue integral = Integral(*histogram, includeOverflow);
-                    of << integral.ToString<wchar_t>(includeError) << sep;
+                    of << integral.ToString<wchar_t>(includeError, false) << sep;
                 }
                 else
                     of << "not found" << sep;
@@ -912,79 +944,26 @@ private:
     void ApplyPostFitCorrections(const FlatAnalyzerDataMetaId_noRegion_noName& anaDataMetaId,
                                  const std::string& hist_name, bool compositFlag)
     {
-        typedef std::map<std::string, double> ScaleFactorForDataCategoryMap;
-        typedef std::map<EventCategory, ScaleFactorForDataCategoryMap> ScaleFactorForEventCategoryMap;
-        typedef std::map<EventSubCategory, ScaleFactorForEventCategoryMap> ScaleFactorMap;
-        typedef std::map<EventCategory, double> UncertaintyForEventCategoryMap;
-        typedef std::map<EventSubCategory, UncertaintyForEventCategoryMap> UncertaintyMap;
-
-        static UncertaintyMap uncertainties;
-        static ScaleFactorMap scaleFactors;
-
-        if(!scaleFactors.size()) {
-            uncertainties[EventSubCategory::KinematicFitConverged] = {
-                { EventCategory::TwoJets_ZeroBtag, 0.08235 },
-                { EventCategory::TwoJets_OneBtag, 0.12865 },
-                { EventCategory::TwoJets_TwoBtag, 0.17155 }
-            };
-
-            uncertainties[EventSubCategory::KinematicFitConvergedWithMassWindow] = {
-                { EventCategory::TwoJets_ZeroBtag, 0.07615 },
-                { EventCategory::TwoJets_OneBtag, 0.14487 },
-                { EventCategory::TwoJets_TwoBtag, 0.18952 }
-            };
-
-            uncertainties[EventSubCategory::KinematicFitConverged][EventCategory::TwoJets_Inclusive] =
-                    uncertainties[EventSubCategory::KinematicFitConverged][EventCategory::TwoJets_ZeroBtag];
-            uncertainties[EventSubCategory::NoCuts] = uncertainties[EventSubCategory::KinematicFitConverged];
-
-
-            scaleFactors[EventSubCategory::KinematicFitConverged][EventCategory::TwoJets_ZeroBtag] = {
-                { "QCD", 0.98941 }, { "TT", 1.12182 }, { "VV", 1.12569 }, { "W", 1.01300 }, { "ZLL", 0.99556 },
-                { "ZTT", 1.27644 }
-            };
-
-            scaleFactors[EventSubCategory::KinematicFitConverged][EventCategory::TwoJets_OneBtag] = {
-                { "QCD", 1.03465 }, { "TT", 1.08095 }, { "VV", 1.08546 }, { "ZLL", 1.00888 }, { "ZTT", 1.19203 }
-            };
-
-            scaleFactors[EventSubCategory::KinematicFitConverged][EventCategory::TwoJets_TwoBtag] = {
-                { "QCD", 0.97828 }, { "TT", 1.05903 }, { "VV", 1.04112 }, { "ZLL", 1.00152 }, { "ZTT", 1.04694 }
-            };
-
-            scaleFactors[EventSubCategory::KinematicFitConvergedWithMassWindow][EventCategory::TwoJets_ZeroBtag] = {
-                { "QCD", 1.01377 }, { "TT", 1.05496 }, { "VV", 1.05401 }, { "W", 1.00883 }, { "ZLL", 1.01078 },
-                { "ZTT", 1.10411 }
-            };
-
-            scaleFactors[EventSubCategory::KinematicFitConvergedWithMassWindow][EventCategory::TwoJets_OneBtag] = {
-                { "QCD", 0.92723 }, { "TT", 0.98397 }, { "VV", 0.99815 }, { "ZLL", 0.99512 }, { "ZTT", 1.08041 }
-            };
-
-            scaleFactors[EventSubCategory::KinematicFitConvergedWithMassWindow][EventCategory::TwoJets_TwoBtag] = {
-                { "QCD", 1.05262 }, { "TT", 1.23052 }, { "VV", 1.13869 }, { "ZLL", 0.99945 }, { "ZTT", 1.30434 }
-            };
-
-            scaleFactors[EventSubCategory::KinematicFitConverged][EventCategory::TwoJets_Inclusive] =
-                    scaleFactors[EventSubCategory::KinematicFitConverged][EventCategory::TwoJets_ZeroBtag];
-            scaleFactors[EventSubCategory::NoCuts] = scaleFactors[EventSubCategory::KinematicFitConverged];
-        }
-
         const EventCategory eventCategory = anaDataMetaId.eventCategory;
         const EventSubCategory subCategory = anaDataMetaId.eventSubCategory;
 
         for (EventRegion eventRegion : AllEventRegions) {
             for(const DataCategory* dataCategory : dataCategoryCollection.GetCategories(DataCategoryType::Limits)) {
                 if(dataCategory->IsComposit() != compositFlag) continue;
-                if(!scaleFactors.count(subCategory) || !scaleFactors.at(subCategory).count(eventCategory)
-                        || !scaleFactors.at(subCategory).at(eventCategory).count(dataCategory->datacard)) continue;
-                const double uncertainty = uncertainties.at(subCategory).at(eventCategory);
-                const double scaleFactor = scaleFactors.at(subCategory).at(eventCategory).at(dataCategory->datacard);
+                if(!postfitCorrectionsCollection
+                        || !postfitCorrectionsCollection->HasCorrections(ChannelId(), eventCategory, subCategory))
+                    continue;
+                const PostfitCorrections& corrections =
+                        postfitCorrectionsCollection->GetCorrections(ChannelId(), eventCategory, subCategory);
+                if(!corrections.HasScaleFactor(dataCategory->datacard)) continue;
+                const double uncertainty = corrections.GetUncertainty();
+                const double scaleFactor = corrections.GetScaleFactor(dataCategory->datacard);
 
                 if(auto hist = GetHistogram(anaDataMetaId, eventRegion, dataCategory->name, hist_name)) {
                     hist->Scale(scaleFactor);
                     for (Int_t n = 0; n <= hist->GetNbinsX() + 1; ++n) {
-                        const double error = hist->GetBinError(n) * std::sqrt(1 + sqr(uncertainty));
+                        const double error = std::sqrt(sqr(hist->GetBinError(n))
+                                                       + sqr(hist->GetBinContent(n) * uncertainty));
                         hist->SetBinError(n, error);
                     }
                 }
@@ -998,6 +977,7 @@ protected:
     DataCategoryCollection dataCategoryCollection;
     FlatAnalyzerDataCollection anaDataCollection;
     bool applyPostFitCorrections;
+    std::shared_ptr<PostfitCorrectionsCollection> postfitCorrectionsCollection;
 };
 
 } // namespace analysis

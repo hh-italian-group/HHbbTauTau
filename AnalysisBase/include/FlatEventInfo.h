@@ -1,8 +1,8 @@
 /*!
  * \file FlatEventInfo.h
  * \brief Definiton of analysis::FlatEventInfo class.
- * \author Konstantin Androsov (Siena University, INFN Pisa)
- * \author Maria Teresa Grippo (Siena University, INFN Pisa)
+ * \author Konstantin Androsov (University of Siena, INFN Pisa)
+ * \author Maria Teresa Grippo (University of Siena, INFN Pisa)
  * \date 2014-10-07 created
  *
  * Copyright 2014 Konstantin Androsov <konstantin.androsov@gmail.com>,
@@ -41,6 +41,11 @@ namespace analysis {
 
 struct FlatEventInfo {
     typedef std::pair<size_t, size_t> BjetPair;
+
+    static size_t NumberOfCombinationPairs(size_t n_bjets)
+    {
+        return n_bjets * (n_bjets - 1) / 2;
+    }
 
     static size_t CombinationPairToIndex(const BjetPair& pair, size_t n_bjets)
     {
@@ -130,5 +135,7 @@ struct FlatEventInfo {
         }
     }
 };
+
+typedef std::shared_ptr<FlatEventInfo> FlatEventInfoPtr;
 
 } // namespace analysis
